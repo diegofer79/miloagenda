@@ -21,6 +21,11 @@ jobs:
 
       - name: Set up Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          packages: ''   # evita instalar el paquete obsoleto 'tools' (falla en v3)
+
+      - name: Install SDK packages
+        run: sdkmanager "platform-tools" "platforms;android-34" "build-tools;34.0.0"
 
       - name: Grant execute permission to gradlew
         run: chmod +x ./gradlew
