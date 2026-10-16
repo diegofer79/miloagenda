@@ -311,10 +311,10 @@ private fun TodayColumn(modifier: Modifier, onEdit: (Event) -> Unit, onOpen: () 
             Text("Abrir agenda", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.Primary,
                 modifier = Modifier.clip(RoundedCornerShape(8.dp)).clickable { onOpen() }.padding(6.dp))
         }
-        Spacer(Modifier.height(8.dp))
+        Spacer(Modifier.height(4.dp))
         if (list.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Sin eventos hoy", color = C.InkVar) }
-        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(2.dp)) {
             var nowShown = false
             list.forEach { e ->
                 if (!nowShown && e.start > now) { nowShown = true; item("now") { NowRow() } }
@@ -332,11 +332,11 @@ private fun HomeEventRow(e: Event, ctx: android.content.Context, onEdit: (Event)
     val hour = WeatherRepo.hourAt(e.startAt)
     val on = e.alarmMinutes >= 0
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable { onEdit(e) }.padding(horizontal = 16.dp, vertical = 14.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable { onEdit(e) }.padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(e.start.format(HM), fontSize = 14.sp, color = if (past) C.Outline else C.InkVar, modifier = Modifier.width(52.dp))
-        Box(Modifier.width(4.dp).height(40.dp).clip(RoundedCornerShape(2.dp)).background(if (past) C.OutlineVar else ink))
+        Box(Modifier.width(4.dp).height(36.dp).clip(RoundedCornerShape(2.dp)).background(if (past) C.OutlineVar else ink))
         Column(Modifier.weight(1f)) {
             Text(e.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = if (past) C.Outline else C.Ink,
                 textDecoration = if (past) TextDecoration.LineThrough else null, maxLines = 1, overflow = TextOverflow.Ellipsis)
