@@ -1,0 +1,14 @@
+Agenda Milo reúne reloj, calendario, clima y notas en una pantalla de inicio de widgets combinables, pensada para una tablet en horizontal.
+
+Todo se guarda en el propio dispositivo: sin cuentas, sin rastreo y sin servicios de Google. El clima viene de Open-Meteo, un servicio libre que no necesita clave ni registro.
+
+Características:
+
+* Inicio con widgets que se activan y desactivan a tu gusto: reloj grande, clima, siguiente evento, nota fijada, agenda del día, temporizador y aviso de lluvia.
+* Agenda con vista de mes y de día. Cada evento muestra el clima previsto a su hora y puede crear una alarma con un toque.
+* Lee también los eventos de Google Calendar y otros calendarios que la tablet ya sincroniza (solo lectura), a través del calendario del sistema: sin iniciar sesión ni usar servicios de Google.
+* Alarmas exactas que suenan aunque el dispositivo esté en reposo y se reprograman al reiniciar.
+* Clima detallado: actual, por horas, viento, humedad, índice UV, presión, salida y puesta de sol y pronóstico de 7 días.
+* Notas con buscador y filtros: texto libre, listas con casillas, color, fijado y vínculo a un evento. Se guardan solas.
+
+Diseñada en tonos de verde salvia con Material 3, ligera y sin conexiones en segundo plano.
