@@ -66,7 +66,8 @@ fun App() {
         editing = Event(Store.newId(), "", date, start, start.plusHours(1), alarmMinutes = prefs.defaultAlarm)
     }
 
-    Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
+    // Contenido de cada pantalla. En tablet (ancho) va a la derecha del riel fijo.
+    val content: @Composable () -> Unit = {
         when (screen) {
             Screen.Home -> HomeScreen(
                 nav = { screen = it },
@@ -78,6 +79,20 @@ fun App() {
             Screen.Weather -> WeatherScreen(onBack = { screen = Screen.Home })
             Screen.Notes -> NotesScreen(onBack = { screen = Screen.Home }, initialId = openNoteId)
             Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
+        }
+    }
+
+    Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints {
+            if (maxWidth > 760.dp) {
+                // Riel de navegación fijo en todas las pantallas (tablet).
+                Row(Modifier.fillMaxSize()) {
+                    NavRail(current = screen, nav = { screen = it }, onNew = { newEvent() })
+                    Box(Modifier.weight(1f).fillMaxHeight()) { content() }
+                }
+            } else {
+                content()
+            }
         }
     }
 

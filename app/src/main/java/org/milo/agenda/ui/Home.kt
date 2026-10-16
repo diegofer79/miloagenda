@@ -66,25 +66,22 @@ fun HomeScreen(
     BoxWithConstraints(Modifier.fillMaxSize()) {
         val wide = maxWidth > 760.dp
         if (wide) {
-            // Diseño 1a: riel negro a la izquierda + tablero en 3 columnas.
-            Row(Modifier.fillMaxSize()) {
-                Rail(nav, onNewEvent)
-                Row(
-                    Modifier.weight(1f).fillMaxHeight().padding(start = 16.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                ) {
-                    // Columna izquierda: reloj, clima, temporizador.
-                    Column(Modifier.width(380.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                        if ("clock" in w) ClockCard(now)
-                        if ("weather" in w) WeatherCard(Modifier.weight(1f)) { nav(Screen.Weather) }
-                        if ("timer" in w) TimerCard(now, Modifier.weight(1f))
-                    }
-                    // Columna central: agenda de hoy.
-                    if ("today" in w) TodayColumn(Modifier.weight(1f).fillMaxHeight(), onEditEvent) { nav(Screen.Agenda) }
-                    else Spacer(Modifier.weight(1f))
-                    // Columna derecha: notas fijadas editables.
-                    if ("note" in w) NotesColumn(Modifier.width(340.dp).fillMaxHeight(), onOpenNote) { nav(Screen.Notes) }
+            // Diseño 1a: tablero en 3 columnas. El riel lo pone App() para que quede fijo en todas las pantallas.
+            Row(
+                Modifier.fillMaxSize().padding(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+            ) {
+                // Columna izquierda: reloj, clima, temporizador.
+                Column(Modifier.width(380.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    if ("clock" in w) ClockCard(now)
+                    if ("weather" in w) WeatherCard(Modifier.weight(1f)) { nav(Screen.Weather) }
+                    if ("timer" in w) TimerCard(now, Modifier.weight(1f))
                 }
+                // Columna central: agenda de hoy.
+                if ("today" in w) TodayColumn(Modifier.weight(1f).fillMaxHeight(), onEditEvent) { nav(Screen.Agenda) }
+                else Spacer(Modifier.weight(1f))
+                // Columna derecha: notas fijadas editables.
+                if ("note" in w) NotesColumn(Modifier.width(340.dp).fillMaxHeight(), onOpenNote) { nav(Screen.Notes) }
             }
         } else {
             // Teléfono / pantallas estrechas: columna con scroll + barra inferior.
@@ -107,7 +104,7 @@ fun HomeScreen(
 // ---------- Riel de navegación (diseño 1a) ----------
 
 @Composable
-private fun Rail(nav: (Screen) -> Unit, onNew: () -> Unit) {
+fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
     Column(
         Modifier.width(88.dp).fillMaxHeight().padding(start = 16.dp, top = 8.dp, bottom = 24.dp)
             .clip(RoundedCornerShape(44.dp)).background(C.Ink),
@@ -120,17 +117,19 @@ private fun Rail(nav: (Screen) -> Unit, onNew: () -> Unit) {
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Add, "Nuevo", tint = C.OnPrimaryContainer) }
         Spacer(Modifier.height(4.dp))
-        RailItem(Icons.Rounded.Dashboard, "Inicio", selected = true) { nav(Screen.Home) }
-        RailItem(Icons.Rounded.DateRange, "Agenda") { nav(Screen.Agenda) }
+        RailItem(Icons.Rounded.Dashboard, "Inicio", current == Screen.Home) { nav(Screen.Home) }
+        RailItem(Icons.Rounded.DateRange, "Agenda", current == Screen.Agenda) { nav(Screen.Agenda) }
         // "Reloj" aparece en el diseño pero no hay pantalla de reloj dedicada: queda inerte.
-        RailItem(Icons.Rounded.Schedule, "Reloj") { }
-        RailItem(Icons.Rounded.FilterDrama, "Clima") { nav(Screen.Weather) }
-        RailItem(Icons.Rounded.Description, "Notas") { nav(Screen.Notes) }
+        RailItem(Icons.Rounded.Schedule, "Reloj", false) { }
+        RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather) { nav(Screen.Weather) }
+        RailItem(Icons.Rounded.Description, "Notas", current == Screen.Notes) { nav(Screen.Notes) }
         Spacer(Modifier.weight(1f))
         Box(
-            Modifier.size(48.dp).clip(CircleShape).clickable { nav(Screen.Settings) },
+            Modifier.size(48.dp).clip(CircleShape)
+                .background(if (current == Screen.Settings) C.PrimaryContainer else Color.Transparent)
+                .clickable { nav(Screen.Settings) },
             contentAlignment = Alignment.Center,
-        ) { Icon(Icons.Rounded.Settings, "Ajustes", tint = C.Surface) }
+        ) { Icon(Icons.Rounded.Settings, "Ajustes", tint = if (current == Screen.Settings) C.OnPrimaryContainer else C.Surface) }
     }
 }
 
