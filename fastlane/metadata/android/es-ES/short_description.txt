@@ -1,0 +1,1 @@
+Reloj, agenda, clima y notas en un inicio de widgets. Local, sin cuentas.

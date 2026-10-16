@@ -1,0 +1,199 @@
+package org.milo.agenda.ui
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.milo.agenda.data.ALL_WIDGETS
+import org.milo.agenda.data.Place
+import org.milo.agenda.data.Store
+import org.milo.agenda.data.WeatherRepo
+
+@Composable
+fun SettingsScreen(onBack: () -> Unit) {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val prefs = Store.prefs
+    var showCity by remember { mutableStateOf(false) }
+
+    Column(Modifier.fillMaxSize()) {
+        TopBar("Ajustes", onBack)
+        Column(
+            Modifier.fillMaxWidth().weight(1f).verticalScroll(rememberScrollState())
+                .padding(horizontal = 24.dp, vertical = 8.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
+        ) {
+            // ---- Ciudad / clima ----
+            Section("Ubicación del clima") {
+                Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(16.dp)).clickable { showCity = true }.padding(4.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Icon(Icons.Rounded.Place, null, tint = C.Primary, modifier = Modifier.size(28.dp))
+                    Column(Modifier.weight(1f)) {
+                        Text(prefs.city, fontSize = 17.sp, fontWeight = FontWeight.Medium)
+                        Text("%.3f, %.3f".format(prefs.lat, prefs.lon), fontSize = 13.sp, color = C.InkVar)
+                    }
+                    TextButton(onClick = { showCity = true }) { Text("Cambiar") }
+                }
+                Text("El clima viene de Open-Meteo.com, sin clave ni cuenta.", fontSize = 13.sp, color = C.InkVar)
+            }
+
+            // ---- Calendario del sistema (Google, etc.) ----
+            Section("Calendario del sistema") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Mostrar eventos de Google Calendar", fontSize = 16.sp)
+                        Text("Lee los calendarios que ya sincroniza la tablet (Google u otros). Solo lectura.",
+                            fontSize = 13.sp, color = C.InkVar)
+                    }
+                    Switch(
+                        checked = prefs.showDeviceCalendar,
+                        onCheckedChange = { Store.updatePrefs(prefs.copy(showDeviceCalendar = it)) },
+                    )
+                }
+            }
+
+            // ---- Alarma por defecto ----
+            Section("Alarma por defecto en eventos nuevos") {
+                val options = listOf(0 to "A la hora", 5 to "5 min", 10 to "10 min", 15 to "15 min", 30 to "30 min", 60 to "1 h")
+                FlowChips(options.map { it.first to it.second }, prefs.defaultAlarm) { v ->
+                    Store.updatePrefs(prefs.copy(defaultAlarm = v))
+                }
+            }
+
+            // ---- Widgets del inicio ----
+            Section("Widgets del inicio") {
+                ALL_WIDGETS.forEach { (key, label) ->
+                    val on = key in prefs.widgets
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                            .clickable { Store.updatePrefs(prefs.copy(widgets = prefs.widgets.toggle(key))) }
+                            .padding(vertical = 6.dp, horizontal = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Text(label, fontSize = 16.sp, modifier = Modifier.weight(1f))
+                        Switch(checked = on, onCheckedChange = { Store.updatePrefs(prefs.copy(widgets = prefs.widgets.toggle(key))) })
+                    }
+                }
+                Text("Reordénalos y ajústalos desde el inicio; aquí decides cuáles aparecen.", fontSize = 13.sp, color = C.InkVar)
+            }
+
+            // ---- Acerca de ----
+            Section("Acerca de") {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+                    Icon(Icons.Rounded.Info, null, tint = C.Primary, modifier = Modifier.size(28.dp))
+                    Column {
+                        Text("Agenda Milo 0.1.0", fontSize = 16.sp, fontWeight = FontWeight.Medium)
+                        Text("Todo se guarda en esta tablet. Sin cuentas ni nube.", fontSize = 13.sp, color = C.InkVar)
+                    }
+                }
+            }
+            Spacer(Modifier.height(8.dp))
+        }
+    }
+
+    if (showCity) CityDialog(
+        onDismiss = { showCity = false },
+        onPick = { p ->
+            Store.updatePrefs(prefs.copy(city = p.name, lat = p.lat, lon = p.lon))
+            showCity = false
+            scope.launch { WeatherRepo.refresh(ctx) }
+        },
+    )
+}
+
+private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
+
+@Composable
+private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(24.dp), PaddingValues(20.dp)) {
+        Text(title, fontSize = 15.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
+        Spacer(Modifier.height(12.dp))
+        content()
+    }
+}
+
+@Composable
+private fun FlowChips(options: List<Pair<Int, String>>, selected: Int, onSelect: (Int) -> Unit) {
+    // Dos filas para que quepa en tablet y teléfono sin desbordar.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        options.chunked(3).forEach { row ->
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                row.forEach { (v, label) ->
+                    FilterChip(selected = selected == v, onClick = { onSelect(v) }, label = { Text(label) })
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CityDialog(onDismiss: () -> Unit, onPick: (Place) -> Unit) {
+    val ctx = LocalContext.current
+    var query by remember { mutableStateOf("") }
+    var results by remember { mutableStateOf<List<Place>>(emptyList()) }
+    var loading by remember { mutableStateOf(false) }
+
+    LaunchedEffect(query) {
+        if (query.trim().length < 2) { results = emptyList(); loading = false; return@LaunchedEffect }
+        loading = true
+        delay(300) // pequeño retardo para no buscar en cada tecla
+        results = runCatching { WeatherRepo.search(ctx, query.trim()) }.getOrDefault(emptyList())
+        loading = false
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = C.Surface,
+        title = { Text("Elegir ciudad") },
+        text = {
+            Column(Modifier.widthIn(min = 360.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                OutlinedTextField(
+                    value = query, onValueChange = { query = it },
+                    placeholder = { Text("Buscar ciudad") },
+                    leadingIcon = { Icon(Icons.Rounded.Search, null) },
+                    singleLine = true, shape = RoundedCornerShape(24.dp), modifier = Modifier.fillMaxWidth(),
+                )
+                when {
+                    loading -> Box(Modifier.fillMaxWidth().height(80.dp), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(Modifier.size(28.dp), strokeWidth = 2.dp)
+                    }
+                    query.trim().length < 2 -> Text("Escribe al menos dos letras.", fontSize = 13.sp, color = C.InkVar)
+                    results.isEmpty() -> Text("Sin resultados.", fontSize = 13.sp, color = C.InkVar)
+                    else -> LazyColumn(Modifier.heightIn(max = 280.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        items(results) { p ->
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable { onPick(p) }
+                                    .padding(horizontal = 12.dp, vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                            ) {
+                                Icon(Icons.Rounded.Place, null, tint = C.Outline, modifier = Modifier.size(20.dp))
+                                Column {
+                                    Text(p.name, fontSize = 16.sp)
+                                    if (p.detail.isNotBlank()) Text(p.detail, fontSize = 13.sp, color = C.InkVar)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = { TextButton(onClick = onDismiss) { Text("Cerrar") } },
+    )
+}

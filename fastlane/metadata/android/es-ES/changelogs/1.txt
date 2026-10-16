@@ -1,0 +1,8 @@
+Primera versión de Agenda Milo.
+
+- Inicio con widgets combinables.
+- Agenda con clima por hora y alarmas de eventos.
+- Lectura de los eventos de Google Calendar y del sistema (hora y título), sin cuenta.
+- Clima de Open-Meteo: actual, por horas y 7 días.
+- Notas con listas, color, fijado y vínculo a eventos.
+- Todo local, sin cuentas ni rastreo.
