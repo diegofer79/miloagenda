@@ -83,7 +83,7 @@ fun HomeScreen(
                 // Columna izquierda: reloj, clima, temporizador y agenda de mañana.
                 Column(Modifier.width(380.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     if ("clock" in w) ClockCard(now)
-                    if ("weather" in w) WeatherCard(Modifier.weight(1f)) { nav(Screen.Weather) }
+                    if ("weather" in w) WeatherCard(Modifier.weight(1.25f)) { nav(Screen.Weather) }
                     if ("timer" in w) TimerCard(now, Modifier.weight(1f))
                     TomorrowCard(Modifier.weight(2f), onOpenAgendaOn)
                 }
@@ -98,7 +98,7 @@ fun HomeScreen(
             Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     if ("clock" in w) ClockCard(now)
-                    if ("weather" in w) WeatherCard(Modifier.height(150.dp)) { nav(Screen.Weather) }
+                    if ("weather" in w) WeatherCard(Modifier.height(188.dp)) { nav(Screen.Weather) }
                     if ("timer" in w) TimerCard(now, Modifier.height(140.dp))
                     TomorrowCard(Modifier.heightIn(min = 160.dp), onOpenAgendaOn)
                     if ("today" in w) TodayColumn(Modifier.height(320.dp), onEditEvent) { onOpenAgendaOn(LocalDate.now()) }
@@ -193,17 +193,17 @@ private fun ClockCard(now: LocalDateTime) {
         .mapNotNull { e -> e.alarmAtMillis()?.let { it to e } }
         .filter { it.first > System.currentTimeMillis() }
         .minByOrNull { it.first }
-    Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 28.dp, vertical = 24.dp)) {
+    Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 28.dp, vertical = 16.dp)) {
         Text(
             buildAnnotatedString {
                 append("%02d".format(now.hour))
                 withStyle(SpanStyle(color = C.Primary)) { append(":") }
                 append("%02d".format(now.minute))
             },
-            fontSize = 96.sp, fontWeight = FontWeight.Light, color = C.Ink, lineHeight = 96.sp, maxLines = 1, letterSpacing = (-3).sp,
+            fontSize = 72.sp, fontWeight = FontWeight.Light, color = C.Ink, lineHeight = 72.sp, maxLines = 1, letterSpacing = (-2).sp,
         )
-        Spacer(Modifier.height(8.dp))
-        Text(fmtLongDay(now.toLocalDate()), fontSize = 18.sp, color = C.InkVar)
+        Spacer(Modifier.height(6.dp))
+        Text(fmtLongDay(now.toLocalDate()), fontSize = 17.sp, color = C.InkVar)
         if (nextAlarm != null) {
             Spacer(Modifier.height(18.dp))
             val (millis, e) = nextAlarm
@@ -313,32 +313,31 @@ private fun TomorrowCard(modifier: Modifier, onOpenAgenda: (LocalDate) -> Unit) 
     val tomorrow = LocalDate.now().plusDays(1)
     val list = Store.eventsOn(tomorrow)
     val shown = list.take(4)
-    Tile(C.SurfaceC, modifier, RoundedCornerShape(28.dp), PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+    Tile(C.SurfaceC, modifier, RoundedCornerShape(28.dp), PaddingValues(horizontal = 20.dp, vertical = 14.dp),
         onClick = { onOpenAgenda(tomorrow) }) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
             Text("Mañana", fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Text("${fmtShortDay(tomorrow)} ${tomorrow.dayOfMonth}", fontSize = 14.sp, color = C.InkVar)
         }
-        Spacer(Modifier.height(6.dp))
+        Spacer(Modifier.height(4.dp))
         if (list.isEmpty()) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Sin eventos", color = C.InkVar, fontSize = 15.sp) }
         } else {
             shown.forEach { e ->
                 val (_, _, ink) = eventColors[e.color.coerceIn(0, eventColors.lastIndex)]
                 Row(
-                    Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    Modifier.fillMaxWidth().padding(vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
                     Text(e.start.format(HM), fontSize = 14.sp, color = C.InkVar, modifier = Modifier.width(48.dp))
-                    Box(Modifier.width(4.dp).height(28.dp).clip(RoundedCornerShape(2.dp)).background(ink))
+                    Box(Modifier.width(4.dp).height(24.dp).clip(RoundedCornerShape(2.dp)).background(ink))
                     Text(e.title, fontSize = 15.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
                     if (e.fromDevice) Icon(Icons.Rounded.Event, null, tint = C.Outline, modifier = Modifier.size(16.dp))
                 }
             }
             if (list.size > shown.size) {
-                Spacer(Modifier.height(2.dp))
                 Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onOpenAgenda(tomorrow) }.padding(vertical = 6.dp, horizontal = 4.dp),
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onOpenAgenda(tomorrow) }.padding(vertical = 4.dp, horizontal = 4.dp),
                     verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
                 ) {
                     Text("Ver más (${list.size})", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.Primary)
