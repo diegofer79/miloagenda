@@ -68,6 +68,7 @@ fun HomeScreen(
     onNewEvent: () -> Unit,
     onEditEvent: (Event) -> Unit,
     onOpenNote: (Long) -> Unit,
+    onOpenAgendaOn: (LocalDate) -> Unit,
 ) {
     val now = rememberNow()
     val w = Store.prefs.widgets
@@ -79,14 +80,15 @@ fun HomeScreen(
                 Modifier.fillMaxSize().padding(start = 8.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
             ) {
-                // Columna izquierda: reloj, clima, temporizador.
+                // Columna izquierda: reloj, clima, temporizador y agenda de mañana.
                 Column(Modifier.width(380.dp).fillMaxHeight(), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     if ("clock" in w) ClockCard(now)
                     if ("weather" in w) WeatherCard(Modifier.weight(1f)) { nav(Screen.Weather) }
                     if ("timer" in w) TimerCard(now, Modifier.weight(1f))
+                    TomorrowCard(Modifier.weight(2f), onOpenAgendaOn)
                 }
                 // Columna central: agenda de hoy.
-                if ("today" in w) TodayColumn(Modifier.weight(1f).fillMaxHeight(), onEditEvent) { nav(Screen.Agenda) }
+                if ("today" in w) TodayColumn(Modifier.weight(1f).fillMaxHeight(), onEditEvent) { onOpenAgendaOn(LocalDate.now()) }
                 else Spacer(Modifier.weight(1f))
                 // Columna derecha: lista de compras.
                 if ("note" in w) ComprasColumn(Modifier.width(340.dp).fillMaxHeight(), scrollable = true, onOpenNote)
@@ -96,9 +98,10 @@ fun HomeScreen(
             Column(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, top = 12.dp, bottom = 12.dp)) {
                 Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(14.dp)) {
                     if ("clock" in w) ClockCard(now)
-                    if ("weather" in w) WeatherCard(Modifier.height(200.dp)) { nav(Screen.Weather) }
-                    if ("timer" in w) TimerCard(now, Modifier.height(160.dp))
-                    if ("today" in w) TodayColumn(Modifier.height(320.dp), onEditEvent) { nav(Screen.Agenda) }
+                    if ("weather" in w) WeatherCard(Modifier.height(150.dp)) { nav(Screen.Weather) }
+                    if ("timer" in w) TimerCard(now, Modifier.height(140.dp))
+                    TomorrowCard(Modifier.heightIn(min = 160.dp), onOpenAgendaOn)
+                    if ("today" in w) TodayColumn(Modifier.height(320.dp), onEditEvent) { onOpenAgendaOn(LocalDate.now()) }
                     if ("note" in w) ComprasColumn(Modifier.heightIn(min = 200.dp), scrollable = false, onOpenNote)
                     if (w.isEmpty()) Text("Activa widgets en Ajustes", color = C.InkVar)
                 }
@@ -114,23 +117,22 @@ fun HomeScreen(
 @Composable
 fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
     Column(
-        Modifier.width(88.dp).fillMaxHeight().padding(start = 16.dp, top = 8.dp, bottom = 24.dp)
+        Modifier.width(88.dp).fillMaxHeight().padding(start = 16.dp, top = 8.dp, bottom = 16.dp)
             .clip(RoundedCornerShape(44.dp)).background(C.Ink),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Spacer(Modifier.height(14.dp))
+        Spacer(Modifier.height(10.dp))
         Box(
             Modifier.size(56.dp).clip(CircleShape).background(C.PrimaryContainer).clickable { onNew() },
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Add, "Nuevo", tint = C.OnPrimaryContainer) }
-        Spacer(Modifier.height(4.dp))
-        RailItem(Icons.Rounded.Dashboard, "Inicio", current == Screen.Home) { nav(Screen.Home) }
-        RailItem(Icons.Rounded.DateRange, "Agenda", current == Screen.Agenda) { nav(Screen.Agenda) }
-        // "Reloj" aparece en el diseño pero no hay pantalla de reloj dedicada: queda inerte.
-        RailItem(Icons.Rounded.Schedule, "Reloj", false) { }
-        RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather) { nav(Screen.Weather) }
-        RailItem(Icons.Rounded.Description, "Notas", current == Screen.Notes) { nav(Screen.Notes) }
+        Spacer(Modifier.height(20.dp))
+        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
+            RailItem(Icons.Rounded.Dashboard, "Inicio", current == Screen.Home) { nav(Screen.Home) }
+            RailItem(Icons.Rounded.DateRange, "Agenda", current == Screen.Agenda) { nav(Screen.Agenda) }
+            RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather) { nav(Screen.Weather) }
+            RailItem(Icons.Rounded.Description, "Notas", current == Screen.Notes) { nav(Screen.Notes) }
+        }
         Spacer(Modifier.weight(1f))
         Box(
             Modifier.size(48.dp).clip(CircleShape)
@@ -138,6 +140,7 @@ fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
                 .clickable { nav(Screen.Settings) },
             contentAlignment = Alignment.Center,
         ) { Icon(Icons.Rounded.Settings, "Ajustes", tint = if (current == Screen.Settings) C.OnPrimaryContainer else C.Surface) }
+        Spacer(Modifier.height(16.dp))
     }
 }
 
@@ -219,7 +222,7 @@ private fun ClockCard(now: LocalDateTime) {
 @Composable
 private fun WeatherCard(modifier: Modifier, onClick: () -> Unit) {
     val wx = WeatherRepo.data
-    Tile(C.PrimaryContainer, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 18.dp), onClick = onClick) {
+    Tile(C.PrimaryContainer, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 22.dp, vertical = 14.dp), onClick = onClick) {
         if (wx == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 if (WeatherRepo.loading) CircularProgressIndicator(color = C.OnPrimaryContainer)
@@ -228,13 +231,13 @@ private fun WeatherCard(modifier: Modifier, onClick: () -> Unit) {
             return@Tile
         }
         val today = WeatherRepo.day(LocalDate.now())
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
-            Icon(weatherIcon(wx.code, wx.isDay), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(56.dp))
-            Text(deg(wx.temp), fontSize = 52.sp, color = C.OnPrimaryContainer, lineHeight = 52.sp)
-            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(Store.prefs.city, fontSize = 15.sp, fontWeight = FontWeight.Medium, color = C.OnPrimaryContainer)
-                Text(weatherText(wx.code), fontSize = 13.sp, color = C.OnPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (today != null) Text("${deg(today.max)} / ${deg(today.min)}", fontSize = 13.sp, color = C.OnPrimaryContainer)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            Icon(weatherIcon(wx.code, wx.isDay), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(42.dp))
+            Text(deg(wx.temp), fontSize = 40.sp, color = C.OnPrimaryContainer, lineHeight = 40.sp)
+            Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                Text(Store.prefs.city, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.OnPrimaryContainer)
+                Text(weatherText(wx.code), fontSize = 12.sp, color = C.OnPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (today != null) Text("${deg(today.max)} / ${deg(today.min)}", fontSize = 12.sp, color = C.OnPrimaryContainer)
             }
         }
         Spacer(Modifier.weight(1f))
@@ -242,10 +245,10 @@ private fun WeatherCard(modifier: Modifier, onClick: () -> Unit) {
         val hours = wx.hours.filter { !it.time.isBefore(now) }.take(6)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             hours.forEach { h ->
-                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("%02d".format(h.time.hour), fontSize = 13.sp, color = C.OnPrimaryContainer)
-                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(20.dp))
-                    Text(deg(h.temp), fontSize = 13.sp, fontWeight = FontWeight.SemiBold, color = C.OnPrimaryContainer)
+                Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
+                    Text("%02d".format(h.time.hour), fontSize = 12.sp, color = C.OnPrimaryContainer)
+                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(18.dp))
+                    Text(deg(h.temp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = C.OnPrimaryContainer)
                 }
             }
         }
@@ -267,18 +270,18 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
 
     fun schedule() = Alarms.at(ctx, Alarms.TIMER_ID, TimerState.endAt, "Temporizador", "Tiempo cumplido")
 
-    Tile(C.SurfaceHigh, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 18.dp)) {
+    Tile(C.SurfaceHigh, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.Timer, null, tint = C.Primary, modifier = Modifier.size(22.dp))
+            Icon(Icons.Rounded.Timer, null, tint = C.Primary, modifier = Modifier.size(20.dp))
             Text("Temporizador", fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
             Text(if (running) "En marcha" else if (paused) "En pausa" else "Listo", fontSize = 13.sp, color = C.InkVar)
         }
         Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             // Tocar el tiempo = +5 min.
             Text(
                 "%02d:%02d".format(remaining / 60, remaining % 60),
-                fontSize = 60.sp, fontWeight = FontWeight.Light, color = C.Ink, letterSpacing = (-1).sp,
+                fontSize = 44.sp, fontWeight = FontWeight.Light, color = C.Ink, letterSpacing = (-1).sp,
                 modifier = Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable {
                     when {
                         running -> { TimerState.endAt += 5 * 60_000L; schedule() }
@@ -287,11 +290,11 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
                     }
                 }.padding(horizontal = 6.dp, vertical = 2.dp),
             )
-            RoundIcon(Icons.Rounded.Refresh, "Reiniciar", C.Surface, C.InkVar, 48) {
+            RoundIcon(Icons.Rounded.Refresh, "Reiniciar", C.Surface, C.InkVar, 44) {
                 TimerState.endAt = 0L; TimerState.pausedMs = 0L; TimerState.minutes = 5
                 Alarms.cancel(ctx, Alarms.TIMER_ID)
             }
-            RoundIcon(if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (running) "Pausar" else "Iniciar", C.Primary, Color.White, 56) {
+            RoundIcon(if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (running) "Pausar" else "Iniciar", C.Primary, Color.White, 48) {
                 val t = System.currentTimeMillis()
                 when {
                     running -> { TimerState.pausedMs = TimerState.endAt - t; TimerState.endAt = 0L; Alarms.cancel(ctx, Alarms.TIMER_ID) }
@@ -302,6 +305,47 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
         }
         Spacer(Modifier.height(8.dp))
         Text("Toca el tiempo para sumar 5 min", fontSize = 13.sp, color = C.InkVar)
+    }
+}
+
+@Composable
+private fun TomorrowCard(modifier: Modifier, onOpenAgenda: (LocalDate) -> Unit) {
+    val tomorrow = LocalDate.now().plusDays(1)
+    val list = Store.eventsOn(tomorrow)
+    val shown = list.take(4)
+    Tile(C.SurfaceC, modifier, RoundedCornerShape(28.dp), PaddingValues(horizontal = 20.dp, vertical = 16.dp),
+        onClick = { onOpenAgenda(tomorrow) }) {
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("Mañana", fontSize = 18.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            Text("${fmtShortDay(tomorrow)} ${tomorrow.dayOfMonth}", fontSize = 14.sp, color = C.InkVar)
+        }
+        Spacer(Modifier.height(6.dp))
+        if (list.isEmpty()) {
+            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { Text("Sin eventos", color = C.InkVar, fontSize = 15.sp) }
+        } else {
+            shown.forEach { e ->
+                val (_, _, ink) = eventColors[e.color.coerceIn(0, eventColors.lastIndex)]
+                Row(
+                    Modifier.fillMaxWidth().padding(vertical = 6.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    Text(e.start.format(HM), fontSize = 14.sp, color = C.InkVar, modifier = Modifier.width(48.dp))
+                    Box(Modifier.width(4.dp).height(28.dp).clip(RoundedCornerShape(2.dp)).background(ink))
+                    Text(e.title, fontSize = 15.sp, modifier = Modifier.weight(1f), maxLines = 1, overflow = TextOverflow.Ellipsis)
+                    if (e.fromDevice) Icon(Icons.Rounded.Event, null, tint = C.Outline, modifier = Modifier.size(16.dp))
+                }
+            }
+            if (list.size > shown.size) {
+                Spacer(Modifier.height(2.dp))
+                Row(
+                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable { onOpenAgenda(tomorrow) }.padding(vertical = 6.dp, horizontal = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
+                ) {
+                    Text("Ver más (${list.size})", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.Primary)
+                    Icon(Icons.Rounded.ChevronRight, null, tint = C.Primary, modifier = Modifier.size(18.dp))
+                }
+            }
+        }
     }
 }
 
