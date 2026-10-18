@@ -27,10 +27,11 @@ import java.time.LocalDate
 import java.time.LocalTime
 
 @Composable
-fun AgendaScreen(onBack: () -> Unit, onNew: (LocalDate) -> Unit, onEdit: (Event) -> Unit) {
-    var selEpoch by rememberSaveable { mutableLongStateOf(LocalDate.now().toEpochDay()) }
+fun AgendaScreen(onBack: () -> Unit, onNew: (LocalDate) -> Unit, onEdit: (Event) -> Unit, initialDate: LocalDate = LocalDate.now()) {
+    // remember(initialDate): al entrar a Agenda con una fecha dada (p. ej. "mañana"), arranca ahí.
+    var selEpoch by remember(initialDate) { mutableLongStateOf(initialDate.toEpochDay()) }
     val sel = LocalDate.ofEpochDay(selEpoch)
-    var month by remember { mutableStateOf(sel.withDayOfMonth(1)) }
+    var month by remember(initialDate) { mutableStateOf(initialDate.withDayOfMonth(1)) }
 
     Column(Modifier.fillMaxSize()) {
         TopBar("Agenda", onBack) {
