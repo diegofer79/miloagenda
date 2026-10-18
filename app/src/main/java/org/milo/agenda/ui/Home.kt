@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
@@ -16,12 +18,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -29,7 +35,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import org.milo.agenda.data.Alarms
+import org.milo.agenda.data.CheckItem
 import org.milo.agenda.data.Event
+import org.milo.agenda.data.Note
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
 import java.time.LocalDate
@@ -80,8 +88,8 @@ fun HomeScreen(
                 // Columna central: agenda de hoy.
                 if ("today" in w) TodayColumn(Modifier.weight(1f).fillMaxHeight(), onEditEvent) { nav(Screen.Agenda) }
                 else Spacer(Modifier.weight(1f))
-                // Columna derecha: notas fijadas editables.
-                if ("note" in w) NotesColumn(Modifier.width(340.dp).fillMaxHeight(), onOpenNote) { nav(Screen.Notes) }
+                // Columna derecha: lista de compras.
+                if ("note" in w) ComprasColumn(Modifier.width(340.dp).fillMaxHeight(), scrollable = true, onOpenNote)
             }
         } else {
             // Teléfono / pantallas estrechas: columna con scroll + barra inferior.
@@ -91,7 +99,7 @@ fun HomeScreen(
                     if ("weather" in w) WeatherCard(Modifier.height(200.dp)) { nav(Screen.Weather) }
                     if ("timer" in w) TimerCard(now, Modifier.height(160.dp))
                     if ("today" in w) TodayColumn(Modifier.height(320.dp), onEditEvent) { nav(Screen.Agenda) }
-                    if ("note" in w) NotesColumn(Modifier.heightIn(min = 200.dp), onOpenNote) { nav(Screen.Notes) }
+                    if ("note" in w) ComprasColumn(Modifier.heightIn(min = 200.dp), scrollable = false, onOpenNote)
                     if (w.isEmpty()) Text("Activa widgets en Ajustes", color = C.InkVar)
                 }
                 Spacer(Modifier.height(12.dp))
@@ -367,60 +375,84 @@ private fun NowRow() {
     }
 }
 
-// ---------- Columna derecha: notas fijadas ----------
+// ---------- Columna derecha: lista de compras ----------
+
+/** Título de la única nota fijada que se muestra en Inicio. */
+private const val COMPRAS = "Compras"
 
 @Composable
-private fun NotesColumn(modifier: Modifier, onOpen: (Long) -> Unit, onAll: () -> Unit) {
-    val pinned = Store.notes.filter { it.pinned }.sortedByDescending { it.updated }
+private fun ComprasColumn(modifier: Modifier, scrollable: Boolean, onOpen: (Long) -> Unit) {
+    // Garantiza que exista la nota "Compras" (una sola, fijada).
+    LaunchedEffect(Unit) {
+        if (Store.notes.none { it.title == COMPRAS }) {
+            Store.upsertNote(Note(Store.newId(), title = COMPRAS, pinned = true, color = 1))
+        }
+    }
+    val nota = Store.notes.firstOrNull { it.title == COMPRAS } ?: return
+    var draft by remember { mutableStateOf("") }
+    val focus = remember { FocusRequester() }
+
+    fun addItem() {
+        val t = draft.trim()
+        if (t.isEmpty()) return
+        Store.upsertNote(nota.copy(items = nota.items + CheckItem(t)))
+        draft = ""
+        focus.requestFocus() // se queda en el mismo campo para seguir escribiendo
+    }
+
     Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
         Row(Modifier.fillMaxWidth().padding(start = 8.dp, top = 4.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("Notas fijadas", fontSize = 22.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            IconButton(onClick = onAll) { Icon(Icons.Rounded.Add, "Nueva nota", tint = C.InkVar) }
+            Icon(Icons.Rounded.ShoppingCart, null, tint = C.Primary, modifier = Modifier.size(24.dp))
+            Spacer(Modifier.width(8.dp))
+            Text(COMPRAS, fontSize = 22.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
+            val pend = nota.items.count { !it.done }
+            if (nota.items.isNotEmpty()) Text("$pend pendientes", fontSize = 14.sp, color = C.InkVar)
+            IconButton(onClick = { onOpen(nota.id) }) { Icon(Icons.Rounded.OpenInFull, "Abrir nota", tint = C.InkVar) }
         }
-        if (pinned.isEmpty()) {
-            Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(24.dp)) {
-                Text("Fija una nota para verla aquí.", color = C.InkVar, fontSize = 15.sp)
-            }
-        } else LazyColumn(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            items(pinned, key = { it.id }) { n -> PinnedNoteCard(n, onOpen) }
+        // Textbox arriba de todo: Enter agrega y mantiene el foco.
+        OutlinedTextField(
+            value = draft,
+            onValueChange = { draft = it },
+            placeholder = { Text("Añadir artículo") },
+            leadingIcon = { Icon(Icons.Rounded.Add, null) },
+            singleLine = true,
+            shape = RoundedCornerShape(16.dp),
+            keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done, capitalization = KeyboardCapitalization.Sentences),
+            keyboardActions = KeyboardActions(onDone = { addItem() }),
+            modifier = Modifier.fillMaxWidth().focusRequester(focus),
+        )
+        val items: @Composable ColumnScope.() -> Unit = {
+            if (nota.items.isEmpty()) {
+                Text("La lista está vacía. Escribe arriba y pulsa Enter.", color = C.InkVar, fontSize = 15.sp, modifier = Modifier.padding(start = 4.dp, top = 4.dp))
+            } else nota.items.forEachIndexed { i, it -> CompraItem(nota, i, it) }
+        }
+        if (scrollable) {
+            Column(Modifier.weight(1f).verticalScroll(rememberScrollState()), content = items)
+        } else {
+            Column(content = items)
         }
     }
 }
 
 @Composable
-private fun PinnedNoteCard(n: org.milo.agenda.data.Note, onOpen: (Long) -> Unit) {
-    val (bg, fg) = noteColors[n.color.coerceIn(0, noteColors.lastIndex)]
-    val event = n.eventId?.let { Store.event(it) }
-    Column(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(24.dp)).background(bg).clickable { onOpen(n.id) }.padding(18.dp),
+private fun CompraItem(nota: Note, index: Int, item: CheckItem) {
+    Row(
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).clickable {
+            Store.upsertNote(nota.copy(items = nota.items.toMutableList().also { it[index] = item.copy(done = !item.done) }))
+        }.padding(horizontal = 6.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
-        if (event != null) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                Icon(Icons.Rounded.Event, null, tint = fg, modifier = Modifier.size(15.dp))
-                Text("${event.title} · ${fmtShortDay(event.date)} ${event.start.format(HM)}", fontSize = 12.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            }
-            Spacer(Modifier.height(8.dp))
-        }
-        Text(n.title.ifBlank { "Sin título" }, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
-        if (n.body.isNotBlank()) {
-            Spacer(Modifier.height(6.dp))
-            Text(n.body, fontSize = 14.sp, color = fg, lineHeight = 20.sp, maxLines = 4, overflow = TextOverflow.Ellipsis)
-        }
-        if (n.items.isNotEmpty()) {
-            Spacer(Modifier.height(10.dp))
-            n.items.take(5).forEachIndexed { i, it ->
-                Row(
-                    Modifier.fillMaxWidth().clip(RoundedCornerShape(8.dp)).clickable {
-                        Store.upsertNote(n.copy(items = n.items.toMutableList().also { l -> l[i] = it.copy(done = !it.done) }))
-                    }.padding(vertical = 4.dp),
-                    verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Icon(if (it.done) Icons.Rounded.CheckBox else Icons.Rounded.CheckBoxOutlineBlank, null,
-                        tint = fg, modifier = Modifier.size(20.dp))
-                    Text(it.text, fontSize = 14.sp, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis,
-                        textDecoration = if (it.done) TextDecoration.LineThrough else null)
-                }
-            }
+        Icon(if (item.done) Icons.Rounded.CheckBox else Icons.Rounded.CheckBoxOutlineBlank, null,
+            tint = if (item.done) C.Primary else C.Outline, modifier = Modifier.size(24.dp))
+        Text(item.text, fontSize = 16.sp, modifier = Modifier.weight(1f),
+            color = if (item.done) C.Outline else C.Ink,
+            textDecoration = if (item.done) TextDecoration.LineThrough else null,
+            maxLines = 2, overflow = TextOverflow.Ellipsis)
+        IconButton(onClick = {
+            Store.upsertNote(nota.copy(items = nota.items.toMutableList().also { it.removeAt(index) }))
+        }, modifier = Modifier.size(32.dp)) {
+            Icon(Icons.Rounded.Close, "Quitar", tint = C.Outline, modifier = Modifier.size(18.dp))
         }
     }
 }
