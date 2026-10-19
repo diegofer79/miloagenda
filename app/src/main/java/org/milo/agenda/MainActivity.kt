@@ -6,6 +6,7 @@ import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
 import org.milo.agenda.ui.App
@@ -16,9 +17,15 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         Store.init(this)
         WeatherRepo.init(this)
+        LocalServer.start { Store.addToCompras(it) } // añadir a Compras desde el teléfono (WiFi)
         if (Build.VERSION.SDK_INT >= 33 &&
             checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
         ) requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 1)
         setContent { MiloTheme { App() } }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        LocalServer.stop()
     }
 }
