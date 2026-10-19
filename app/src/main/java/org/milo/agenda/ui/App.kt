@@ -25,8 +25,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
 import org.milo.agenda.data.DeviceCalendar
 import org.milo.agenda.data.Event
+import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
 import java.time.LocalDate
@@ -60,6 +62,17 @@ fun App() {
         if (prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) Store.refreshDeviceEvents(ctx)
     }
 
+    // Protector de pantalla: tras 10 min sin tocar, si hay fotos, se activa.
+    LaunchedEffect(prefs.screensaver) {
+        if (!prefs.screensaver) { Idle.active = false; return@LaunchedEffect }
+        while (true) {
+            delay(5_000)
+            if (!Idle.active && System.currentTimeMillis() - Idle.lastTouch > Idle.IDLE_MS && Photos.count(ctx) > 0) {
+                Idle.active = true
+            }
+        }
+    }
+
     BackHandler(enabled = screen != Screen.Home) { screen = Screen.Home }
 
     fun newEvent(date: LocalDate = LocalDate.now()) {
@@ -87,18 +100,21 @@ fun App() {
         }
     }
 
-    Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
-        BoxWithConstraints {
-            if (maxWidth > 760.dp) {
-                // Riel de navegación fijo en todas las pantallas (tablet).
-                Row(Modifier.fillMaxSize()) {
-                    NavRail(current = screen, nav = go, onNew = { newEvent() })
-                    Box(Modifier.weight(1f).fillMaxHeight()) { content() }
+    Box(Modifier.fillMaxSize()) {
+        Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
+            BoxWithConstraints {
+                if (maxWidth > 760.dp) {
+                    // Riel de navegación fijo en todas las pantallas (tablet).
+                    Row(Modifier.fillMaxSize()) {
+                        NavRail(current = screen, nav = go, onNew = { newEvent() })
+                        Box(Modifier.weight(1f).fillMaxHeight()) { content() }
+                    }
+                } else {
+                    content()
                 }
-            } else {
-                content()
             }
         }
+        if (Idle.active) Screensaver(onDismiss = { Idle.touched() })
     }
 
     editing?.let { e -> EventDialog(e, isNew = Store.event(e.id) == null, onDismiss = { editing = null }) }

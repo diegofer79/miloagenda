@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.milo.agenda.data.ALL_WIDGETS
 import org.milo.agenda.data.LocalServer
+import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Place
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
@@ -93,6 +94,26 @@ fun SettingsScreen(onBack: () -> Unit) {
                     }
                 }
                 Text("Reordénalos y ajústalos desde el inicio; aquí decides cuáles aparecen.", fontSize = 13.sp, color = C.InkVar)
+            }
+
+            // ---- Protector de pantalla ----
+            Section("Protector de pantalla") {
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f)) {
+                        Text("Pasar fotos tras 10 min sin uso", fontSize = 16.sp)
+                        Text("Muestra las fotos de ${Photos.FOLDER}, 30 s cada una. Toca la pantalla para volver.",
+                            fontSize = 13.sp, color = C.InkVar)
+                    }
+                    Switch(
+                        checked = prefs.screensaver,
+                        onCheckedChange = { Store.updatePrefs(prefs.copy(screensaver = it)) },
+                    )
+                }
+                if (prefs.screensaver && !Photos.hasPermission(ctx)) {
+                    Spacer(Modifier.height(8.dp))
+                    Text("Falta el permiso de fotos: la app lo pedirá, o actívalo en los ajustes del sistema.",
+                        fontSize = 13.sp, color = C.Error)
+                }
             }
 
             // ---- Añadir desde el teléfono ----
