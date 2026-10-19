@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Icono para Android < 8: círculo verde con la "M" -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="48dp" android:height="48dp"
+    android:viewportWidth="108" android:viewportHeight="108">
+    <path android:fillColor="#4C6A3D" android:pathData="M54,4a50,50 0,1 1,0 100a50,50 0,1 1,0 -100z" />
+    <path android:fillColor="#CDEDB7"
+        android:pathData="M30,76V32h10l14,20l14,-20h10v44h-10V49l-14,19l-14,-19v27z" />
+</vector>

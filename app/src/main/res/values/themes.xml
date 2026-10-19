@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="surface">#FBF9F3</color>
+    <color name="primary">#4C6A3D</color>
+    <color name="icon_bg">#CDEDB7</color>
+    <style name="Theme.Milo" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/surface</item>
+        <item name="android:statusBarColor">@color/primary</item>
+        <item name="android:navigationBarColor">#1B1C18</item>
+    </style>
+</resources>
