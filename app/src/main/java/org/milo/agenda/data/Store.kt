@@ -60,6 +60,7 @@ data class Prefs(
     val defaultAlarm: Int = 15,
     val widgets: Set<String> = ALL_WIDGETS.map { it.first }.toSet(),
     val showDeviceCalendar: Boolean = true, // mostrar eventos del calendario del sistema (Google, etc.)
+    val screensaver: Boolean = true,        // protector de pantalla con fotos tras 10 min
 )
 
 object Store {
@@ -140,6 +141,7 @@ object Store {
             put("defaultAlarm", p.defaultAlarm)
             put("widgets", JSONArray(p.widgets.toList()))
             put("showDeviceCalendar", p.showDeviceCalendar)
+            put("screensaver", p.screensaver)
         }.toString())
     }
 
@@ -194,6 +196,7 @@ object Store {
                 defaultAlarm = o.optInt("defaultAlarm", 15),
                 widgets = if (w == null) Prefs().widgets else (0 until w.length()).map { i -> w.getString(i) }.toSet(),
                 showDeviceCalendar = o.optBoolean("showDeviceCalendar", true),
+                screensaver = o.optBoolean("screensaver", true),
             )
         } }
 
