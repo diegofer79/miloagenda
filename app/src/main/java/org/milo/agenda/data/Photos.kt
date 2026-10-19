@@ -16,10 +16,10 @@ import java.io.File
  * Solo lectura; escala y rota (EXIF) para mostrarlas sin agotar memoria en tablets viejas.
  */
 object Photos {
-    const val FOLDER = "DCIM/Camera/milo"
+    const val FOLDER = "DCIM/milo"
     private val EXT = setOf("jpg", "jpeg", "png", "webp")
 
-    private fun dir() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "Camera/milo")
+    private fun dir() = File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DCIM), "milo")
 
     fun permission(): String =
         if (Build.VERSION.SDK_INT >= 33) android.Manifest.permission.READ_MEDIA_IMAGES
