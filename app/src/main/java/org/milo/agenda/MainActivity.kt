@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
+import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import org.milo.agenda.data.LocalServer
@@ -15,6 +16,8 @@ import org.milo.agenda.ui.MiloTheme
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Mantener la pantalla encendida mientras la app está en primer plano (sin permisos).
+        window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         Store.init(this)
         WeatherRepo.init(this)
         LocalServer.start { Store.addToCompras(it) } // añadir a Compras desde el teléfono (WiFi)
