@@ -114,7 +114,7 @@ fun App() {
                 }
             }
         }
-        if (Idle.active) Screensaver(onDismiss = { Idle.touched() })
+        if (Idle.active) Screensaver(onDismiss = { Idle.touched(); screen = Screen.Home })
     }
 
     editing?.let { e -> EventDialog(e, isNew = Store.event(e.id) == null, onDismiss = { editing = null }) }
