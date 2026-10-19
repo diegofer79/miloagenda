@@ -40,6 +40,7 @@ fun App() {
     var screen by rememberSaveable { mutableStateOf(Screen.Home) }
     var editing by remember { mutableStateOf<Event?>(null) }
     var openNoteId by remember { mutableStateOf<Long?>(null) }
+    var agendaDate by remember { mutableStateOf(LocalDate.now()) }
     val prefs = Store.prefs
 
     LaunchedEffect(prefs.lat, prefs.lon) {
@@ -66,18 +67,37 @@ fun App() {
         editing = Event(Store.newId(), "", date, start, start.plusHours(1), alarmMinutes = prefs.defaultAlarm)
     }
 
-    Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
+    // Navegación: al ir a Agenda desde el riel, se abre en el día de hoy.
+    val go: (Screen) -> Unit = { s -> if (s == Screen.Agenda) agendaDate = LocalDate.now(); screen = s }
+
+    // Contenido de cada pantalla. En tablet (ancho) va a la derecha del riel fijo.
+    val content: @Composable () -> Unit = {
         when (screen) {
             Screen.Home -> HomeScreen(
-                nav = { screen = it },
+                nav = go,
                 onNewEvent = { newEvent() },
                 onEditEvent = { if (!it.fromDevice) editing = it },
                 onOpenNote = { openNoteId = it; screen = Screen.Notes },
+                onOpenAgendaOn = { d -> agendaDate = d; screen = Screen.Agenda },
             )
-            Screen.Agenda -> AgendaScreen(onBack = { screen = Screen.Home }, onNew = { newEvent(it) }, onEdit = { if (!it.fromDevice) editing = it })
+            Screen.Agenda -> AgendaScreen(initialDate = agendaDate, onBack = { screen = Screen.Home }, onNew = { newEvent(it) }, onEdit = { if (!it.fromDevice) editing = it })
             Screen.Weather -> WeatherScreen(onBack = { screen = Screen.Home })
             Screen.Notes -> NotesScreen(onBack = { screen = Screen.Home }, initialId = openNoteId)
             Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
+        }
+    }
+
+    Surface(color = C.Surface, modifier = Modifier.fillMaxSize()) {
+        BoxWithConstraints {
+            if (maxWidth > 760.dp) {
+                // Riel de navegación fijo en todas las pantallas (tablet).
+                Row(Modifier.fillMaxSize()) {
+                    NavRail(current = screen, nav = go, onNew = { newEvent() })
+                    Box(Modifier.weight(1f).fillMaxHeight()) { content() }
+                }
+            } else {
+                content()
+            }
         }
     }
 

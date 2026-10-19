@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.milo.agenda.data.ALL_WIDGETS
+import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Place
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
@@ -92,6 +93,30 @@ fun SettingsScreen(onBack: () -> Unit) {
                     }
                 }
                 Text("Reordénalos y ajústalos desde el inicio; aquí decides cuáles aparecen.", fontSize = 13.sp, color = C.InkVar)
+            }
+
+            // ---- Añadir desde el teléfono ----
+            Section("Añadir a Compras desde el teléfono") {
+                val ip = remember { LocalServer.ipAddress() }
+                if (ip != null) {
+                    Text("En un teléfono de la MISMA red WiFi, abre esta dirección en el navegador:",
+                        fontSize = 14.sp, color = C.InkVar)
+                    Spacer(Modifier.height(8.dp))
+                    Row(
+                        Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp)).background(C.PrimaryContainer)
+                            .padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Icon(Icons.Rounded.Smartphone, null, tint = C.OnPrimaryContainer, modifier = Modifier.size(22.dp))
+                        Text("http://$ip:${LocalServer.PORT}", fontSize = 20.sp, fontWeight = FontWeight.Medium, color = C.OnPrimaryContainer)
+                    }
+                    Spacer(Modifier.height(8.dp))
+                    Text("Lo que escribas se añade a la lista de Compras del inicio. Todo por tu red, sin internet ni cuentas.",
+                        fontSize = 13.sp, color = C.InkVar)
+                    if (!LocalServer.running) Text("El servidor no está activo (reinicia la app).", fontSize = 13.sp, color = C.Error)
+                } else {
+                    Text("Conéctate a una red WiFi para activar esta función.", fontSize = 14.sp, color = C.InkVar)
+                }
             }
 
             // ---- Acerca de ----
