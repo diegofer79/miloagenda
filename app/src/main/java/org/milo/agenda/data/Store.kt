@@ -125,6 +125,13 @@ object Store {
         saveNotes()
     }
 
+    /** Añade un artículo a la nota "Compras" (la crea si no existe). Usado por el servidor local. */
+    fun addToCompras(text: String) {
+        val base = notes.firstOrNull { it.title == "Compras" }
+            ?: Note(newId(), title = "Compras", pinned = true, color = 1)
+        upsertNote(base.copy(items = base.items + CheckItem(text)))
+    }
+
     // ---------- ajustes ----------
     fun updatePrefs(p: Prefs) {
         prefs = p
