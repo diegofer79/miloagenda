@@ -29,6 +29,7 @@ import org.milo.agenda.data.Store
 object Idle {
     var lastTouch by mutableLongStateOf(System.currentTimeMillis())
     var active by mutableStateOf(false)
+    var resumed by mutableStateOf(true) // la Activity está en primer plano (visible)
 
     /** Cualquier toque: reinicia el contador y cierra el protector. */
     fun touched() {

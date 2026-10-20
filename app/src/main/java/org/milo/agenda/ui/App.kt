@@ -61,6 +61,15 @@ fun App() {
     LaunchedEffect(screen, prefs.showDeviceCalendar) {
         if (prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) Store.refreshDeviceEvents(ctx)
     }
+    // Refresco periódico cada 5 min, solo con la app visible (no en protector ni brillo apagado).
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(5 * 60_000L)
+            if (Idle.resumed && !Idle.active && Store.prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) {
+                Store.refreshDeviceEvents(ctx)
+            }
+        }
+    }
 
     // Protector de pantalla: tras 10 min sin tocar, si hay fotos, se activa.
     LaunchedEffect(prefs.screensaver) {

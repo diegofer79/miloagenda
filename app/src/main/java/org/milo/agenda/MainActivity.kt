@@ -47,6 +47,16 @@ class MainActivity : ComponentActivity() {
         Idle.touched()
     }
 
+    override fun onResume() {
+        super.onResume()
+        Idle.resumed = true
+    }
+
+    override fun onPause() {
+        super.onPause()
+        Idle.resumed = false
+    }
+
     override fun onDestroy() {
         super.onDestroy()
         LocalServer.stop()

@@ -2,6 +2,7 @@ package org.milo.agenda.data
 
 import android.content.Context
 import android.content.pm.PackageManager
+import android.provider.CalendarContract.Calendars
 import android.provider.CalendarContract.Instances
 import androidx.core.content.ContextCompat
 import java.time.Instant
@@ -22,6 +23,25 @@ object DeviceCalendar {
     fun hasPermission(ctx: Context): Boolean =
         ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
 
+    /** Un calendario del sistema: id interno, nombre visible y cuenta. */
+    data class CalInfo(val id: Long, val name: String, val account: String)
+
+    /** Lista los calendarios disponibles (para elegir cuáles mostrar). */
+    fun calendars(ctx: Context): List<CalInfo> {
+        if (!hasPermission(ctx)) return emptyList()
+        val proj = arrayOf(Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME, Calendars.ACCOUNT_NAME)
+        val out = ArrayList<CalInfo>()
+        ctx.contentResolver.query(Calendars.CONTENT_URI, proj, null, null, "${Calendars.CALENDAR_DISPLAY_NAME} ASC")?.use { c ->
+            val idCol = c.getColumnIndexOrThrow(Calendars._ID)
+            val nameCol = c.getColumnIndexOrThrow(Calendars.CALENDAR_DISPLAY_NAME)
+            val accCol = c.getColumnIndexOrThrow(Calendars.ACCOUNT_NAME)
+            while (c.moveToNext()) {
+                out.add(CalInfo(c.getLong(idCol), c.getString(nameCol) ?: "", c.getString(accCol) ?: ""))
+            }
+        }
+        return out
+    }
+
     private val PROJECTION = arrayOf(
         Instances.TITLE,
         Instances.BEGIN,
@@ -41,11 +61,20 @@ object DeviceCalendar {
             .appendPath(endMs.toString())
             .build()
 
+        // Filtro por calendarios seleccionados (nombres). Vacío = todos.
+        val wanted = Store.prefs.calendars
+        var selection: String? = null
+        if (wanted.isNotEmpty()) {
+            val ids = calendars(ctx).filter { it.name in wanted }.map { it.id }
+            if (ids.isEmpty()) return emptyList()
+            selection = Instances.CALENDAR_ID + " IN (" + ids.joinToString(",") + ")"
+        }
+
         val result = ArrayList<Event>()
         // Id sintético negativo y único por recarga: nunca se consulta (solo lectura), solo sirve
         // de clave de lista. Evita colisiones entre instancias de eventos recurrentes.
         var synthetic = -1L
-        ctx.contentResolver.query(uri, PROJECTION, null, null, Instances.BEGIN + " ASC")?.use { c ->
+        ctx.contentResolver.query(uri, PROJECTION, selection, null, Instances.BEGIN + " ASC")?.use { c ->
             val titleCol = c.getColumnIndexOrThrow(Instances.TITLE)
             val beginCol = c.getColumnIndexOrThrow(Instances.BEGIN)
             val endCol = c.getColumnIndexOrThrow(Instances.END)

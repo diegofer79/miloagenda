@@ -23,6 +23,7 @@ import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.milo.agenda.data.ALL_WIDGETS
+import org.milo.agenda.data.DeviceCalendar
 import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Place
@@ -69,6 +70,30 @@ fun SettingsScreen(onBack: () -> Unit) {
                         checked = prefs.showDeviceCalendar,
                         onCheckedChange = { Store.updatePrefs(prefs.copy(showDeviceCalendar = it)) },
                     )
+                }
+                if (prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) {
+                    val cals = remember { DeviceCalendar.calendars(ctx) }
+                    if (cals.isNotEmpty()) {
+                        Spacer(Modifier.height(12.dp))
+                        Text("Calendarios a mostrar", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
+                        cals.forEach { cal ->
+                            val on = cal.name in prefs.calendars
+                            Row(
+                                Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))
+                                    .clickable { Store.updatePrefs(prefs.copy(calendars = prefs.calendars.toggle(cal.name))) }
+                                    .padding(vertical = 6.dp, horizontal = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                            ) {
+                                Column(Modifier.weight(1f)) {
+                                    Text(cal.name, fontSize = 16.sp)
+                                    if (cal.account.isNotBlank() && cal.account != cal.name)
+                                        Text(cal.account, fontSize = 12.sp, color = C.InkVar)
+                                }
+                                Checkbox(checked = on, onCheckedChange = { Store.updatePrefs(prefs.copy(calendars = prefs.calendars.toggle(cal.name))) })
+                            }
+                        }
+                        Text("Si no marcas ninguno, se muestran todos.", fontSize = 13.sp, color = C.InkVar)
+                    }
                 }
             }
 
