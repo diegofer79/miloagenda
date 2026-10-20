@@ -1,7 +1,10 @@
 package org.milo.agenda.data
 
+import android.content.ContentResolver
 import android.content.Context
 import android.content.pm.PackageManager
+import android.os.Bundle
+import android.provider.CalendarContract
 import android.provider.CalendarContract.Calendars
 import android.provider.CalendarContract.Instances
 import androidx.core.content.ContextCompat
@@ -22,6 +25,21 @@ object DeviceCalendar {
 
     fun hasPermission(ctx: Context): Boolean =
         ContextCompat.checkSelfPermission(ctx, android.Manifest.permission.READ_CALENDAR) == PackageManager.PERMISSION_GRANTED
+
+    /**
+     * Fuerza una sincronización inmediata del calendario del sistema con el servidor (lo mismo que
+     * "Actualizar" en Google Calendar). Necesario en dispositivos donde el push no funciona y el
+     * sync periódico es cada 24 h. Cuenta null = todas las cuentas de la autoridad de calendario.
+     */
+    fun requestSync() {
+        runCatching {
+            val extras = Bundle().apply {
+                putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true)
+                putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true)
+            }
+            ContentResolver.requestSync(null, CalendarContract.AUTHORITY, extras)
+        }
+    }
 
     /** Un calendario del sistema: id interno, nombre visible y cuenta. */
     data class CalInfo(val id: Long, val name: String, val account: String)
