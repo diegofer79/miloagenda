@@ -60,6 +60,7 @@ data class Prefs(
     val defaultAlarm: Int = 15,
     val widgets: Set<String> = ALL_WIDGETS.map { it.first }.toSet(),
     val showDeviceCalendar: Boolean = true, // mostrar eventos del calendario del sistema (Google, etc.)
+    val calendars: Set<String> = emptySet(), // nombres de calendarios a mostrar; vacío = todos
     val screensaver: Boolean = true,        // protector de pantalla con fotos
     val screensaverIdleMin: Int = 10,       // minutos de inactividad antes del protector
     val screensaverPhotoSec: Int = 30,      // segundos por foto
@@ -143,6 +144,7 @@ object Store {
             put("defaultAlarm", p.defaultAlarm)
             put("widgets", JSONArray(p.widgets.toList()))
             put("showDeviceCalendar", p.showDeviceCalendar)
+            put("calendars", JSONArray(p.calendars.toList()))
             put("screensaver", p.screensaver)
             put("screensaverIdleMin", p.screensaverIdleMin)
             put("screensaverPhotoSec", p.screensaverPhotoSec)
@@ -200,6 +202,7 @@ object Store {
                 defaultAlarm = o.optInt("defaultAlarm", 15),
                 widgets = if (w == null) Prefs().widgets else (0 until w.length()).map { i -> w.getString(i) }.toSet(),
                 showDeviceCalendar = o.optBoolean("showDeviceCalendar", true),
+                calendars = o.optJSONArray("calendars")?.let { arr -> (0 until arr.length()).map { arr.getString(it) }.toSet() } ?: emptySet(),
                 screensaver = o.optBoolean("screensaver", true),
                 screensaverIdleMin = o.optInt("screensaverIdleMin", 10),
                 screensaverPhotoSec = o.optInt("screensaverPhotoSec", 30),
