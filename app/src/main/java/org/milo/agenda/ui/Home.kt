@@ -269,6 +269,13 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
     val remaining = (remainingMs / 1000).coerceAtLeast(0)
 
     fun schedule() = Alarms.at(ctx, Alarms.TIMER_ID, TimerState.endAt, "Temporizador", "Tiempo cumplido")
+    fun addMin(min: Int) {
+        when {
+            running -> { TimerState.endAt += min * 60_000L; schedule() }
+            paused -> TimerState.pausedMs += min * 60_000L
+            else -> TimerState.minutes = (TimerState.minutes + min).coerceIn(0, 600)
+        }
+    }
 
     Tile(C.SurfaceHigh, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -277,21 +284,16 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
             Text(if (running) "En marcha" else if (paused) "En pausa" else "Listo", fontSize = 13.sp, color = C.InkVar)
         }
         Spacer(Modifier.weight(1f))
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-            // Tocar el tiempo = +5 min.
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "%02d:%02d".format(remaining / 60, remaining % 60),
-                fontSize = 44.sp, fontWeight = FontWeight.Light, color = C.Ink, letterSpacing = (-1).sp,
-                modifier = Modifier.weight(1f).clip(RoundedCornerShape(16.dp)).clickable {
-                    when {
-                        running -> { TimerState.endAt += 5 * 60_000L; schedule() }
-                        paused -> TimerState.pausedMs += 5 * 60_000L
-                        else -> TimerState.minutes = (TimerState.minutes + 5).coerceAtMost(180)
-                    }
-                }.padding(horizontal = 6.dp, vertical = 2.dp),
+                fontSize = 40.sp, fontWeight = FontWeight.Light, color = C.Ink, letterSpacing = (-1).sp,
+                modifier = Modifier.weight(1f),
             )
+            TimerChip("+1") { addMin(1) }
+            TimerChip("+5") { addMin(5) }
             RoundIcon(Icons.Rounded.Refresh, "Reiniciar", C.Surface, C.InkVar, 44) {
-                TimerState.endAt = 0L; TimerState.pausedMs = 0L; TimerState.minutes = 5
+                TimerState.endAt = 0L; TimerState.pausedMs = 0L; TimerState.minutes = 0
                 Alarms.cancel(ctx, Alarms.TIMER_ID)
             }
             RoundIcon(if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (running) "Pausar" else "Iniciar", C.Primary, Color.White, 48) {
@@ -299,12 +301,21 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
                 when {
                     running -> { TimerState.pausedMs = TimerState.endAt - t; TimerState.endAt = 0L; Alarms.cancel(ctx, Alarms.TIMER_ID) }
                     paused -> { TimerState.endAt = t + TimerState.pausedMs; TimerState.pausedMs = 0L; schedule() }
-                    else -> { TimerState.endAt = t + TimerState.minutes * 60_000L; schedule() }
+                    else -> if (TimerState.minutes > 0) { TimerState.endAt = t + TimerState.minutes * 60_000L; schedule() }
                 }
             }
         }
-        Spacer(Modifier.height(8.dp))
-        Text("Toca el tiempo para sumar 5 min", fontSize = 13.sp, color = C.InkVar)
+    }
+}
+
+@Composable
+private fun TimerChip(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.height(44.dp).widthIn(min = 44.dp).clip(RoundedCornerShape(14.dp))
+            .background(C.Surface).clickable { onClick() }.padding(horizontal = 12.dp),
+        contentAlignment = Alignment.Center,
+    ) {
+        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
     }
 }
 
