@@ -17,6 +17,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import kotlinx.coroutines.delay
@@ -100,8 +101,8 @@ fun SettingsScreen(onBack: () -> Unit) {
             Section("Protector de pantalla") {
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
-                        Text("Pasar fotos tras 10 min sin uso", fontSize = 16.sp)
-                        Text("Muestra las fotos de ${Photos.FOLDER}, 30 s cada una. Toca la pantalla para volver.",
+                        Text("Pasar fotos tras inactividad", fontSize = 16.sp)
+                        Text("Muestra las fotos de ${Photos.FOLDER}. Toca la pantalla para volver.",
                             fontSize = 13.sp, color = C.InkVar)
                     }
                     Switch(
@@ -109,10 +110,20 @@ fun SettingsScreen(onBack: () -> Unit) {
                         onCheckedChange = { Store.updatePrefs(prefs.copy(screensaver = it)) },
                     )
                 }
-                if (prefs.screensaver && !Photos.hasPermission(ctx)) {
+                if (prefs.screensaver) {
+                    Spacer(Modifier.height(12.dp))
+                    Stepper("Inactividad", "${prefs.screensaverIdleMin} min",
+                        onMinus = { Store.updatePrefs(prefs.copy(screensaverIdleMin = (prefs.screensaverIdleMin - 5).coerceIn(5, 120))) },
+                        onPlus = { Store.updatePrefs(prefs.copy(screensaverIdleMin = (prefs.screensaverIdleMin + 5).coerceIn(5, 120))) })
                     Spacer(Modifier.height(8.dp))
-                    Text("Falta el permiso de fotos: la app lo pedirá, o actívalo en los ajustes del sistema.",
-                        fontSize = 13.sp, color = C.Error)
+                    Stepper("Por foto", "${prefs.screensaverPhotoSec} s",
+                        onMinus = { Store.updatePrefs(prefs.copy(screensaverPhotoSec = (prefs.screensaverPhotoSec - 10).coerceIn(10, 300))) },
+                        onPlus = { Store.updatePrefs(prefs.copy(screensaverPhotoSec = (prefs.screensaverPhotoSec + 10).coerceIn(10, 300))) })
+                    if (!Photos.hasPermission(ctx)) {
+                        Spacer(Modifier.height(10.dp))
+                        Text("Falta el permiso de fotos: la app lo pedirá, o actívalo en los ajustes del sistema.",
+                            fontSize = 13.sp, color = C.Error)
+                    }
                 }
             }
 
@@ -165,6 +176,16 @@ fun SettingsScreen(onBack: () -> Unit) {
 }
 
 private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
+
+@Composable
+private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(label, fontSize = 16.sp, modifier = Modifier.weight(1f))
+        RoundIcon(Icons.Rounded.Remove, "Menos", C.SurfaceHigh, C.Ink, 44) { onMinus() }
+        Text(value, fontSize = 16.sp, fontWeight = FontWeight.Medium, textAlign = TextAlign.Center, modifier = Modifier.width(72.dp))
+        RoundIcon(Icons.Rounded.Add, "Más", C.SurfaceHigh, C.Ink, 44) { onPlus() }
+    }
+}
 
 @Composable
 private fun Section(title: String, content: @Composable ColumnScope.() -> Unit) {

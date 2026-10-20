@@ -23,12 +23,10 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.withContext
 import org.milo.agenda.data.Photos
+import org.milo.agenda.data.Store
 
 /** Inactividad para el protector de pantalla. [lastTouch] se refresca en cada toque (Activity). */
 object Idle {
-    const val IDLE_MS = 10 * 60_000L   // 10 minutos sin tocar -> protector
-    const val PHOTO_MS = 30_000L       // 30 segundos por foto
-
     var lastTouch by mutableLongStateOf(System.currentTimeMillis())
     var active by mutableStateOf(false)
 
@@ -86,10 +84,10 @@ fun Screensaver(onDismiss: () -> Unit) {
             }
         }
     }
-    // Avanza cada 30 s; al completar la vuelta, apaga.
+    // Avanza según el ajuste; al completar la vuelta, apaga.
     LaunchedEffect(Unit) {
         while (!off) {
-            delay(Idle.PHOTO_MS)
+            delay(Store.prefs.screensaverPhotoSec.coerceAtLeast(5) * 1000L)
             if (index >= photos.size - 1) off = true else index++
         }
     }
