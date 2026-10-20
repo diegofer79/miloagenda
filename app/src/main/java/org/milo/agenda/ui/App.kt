@@ -67,7 +67,8 @@ fun App() {
         if (!prefs.screensaver) { Idle.active = false; return@LaunchedEffect }
         while (true) {
             delay(5_000)
-            if (!Idle.active && System.currentTimeMillis() - Idle.lastTouch > Idle.IDLE_MS && Photos.count(ctx) > 0) {
+            val idleMs = prefs.screensaverIdleMin.coerceAtLeast(1) * 60_000L
+            if (!Idle.active && System.currentTimeMillis() - Idle.lastTouch > idleMs && Photos.count(ctx) > 0) {
                 Idle.active = true
             }
         }
