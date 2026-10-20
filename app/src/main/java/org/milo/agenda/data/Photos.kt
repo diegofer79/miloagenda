@@ -38,17 +38,23 @@ object Photos {
     /** Lista de fotos en orden aleatorio. */
     fun shuffled(ctx: Context): List<File> = files(ctx).shuffled()
 
-    /** Decodifica la foto escalada a ~[reqW]x[reqH] y la rota según EXIF. */
-    fun loadScaled(file: File, reqW: Int, reqH: Int): Bitmap? {
+    /**
+     * Decodifica la foto escalada a ~[reqW]x[reqH] y la rota según EXIF.
+     * A prueba de fallos: runCatching atrapa incluso OutOfMemoryError (una foto muy grande no
+     * tumba el protector; simplemente se omite devolviendo null).
+     */
+    fun loadScaled(file: File, reqW: Int, reqH: Int): Bitmap? = runCatching {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeFile(file.path, bounds)
-        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return null
+        if (bounds.outWidth <= 0 || bounds.outHeight <= 0) return@runCatching null
 
         var sample = 1
         while (bounds.outWidth / sample > reqW || bounds.outHeight / sample > reqH) sample *= 2
 
-        val bmp = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply { inSampleSize = sample })
-            ?: return null
+        val bmp = BitmapFactory.decodeFile(file.path, BitmapFactory.Options().apply {
+            inSampleSize = sample
+            inPreferredConfig = Bitmap.Config.RGB_565 // la mitad de memoria (fotos sin transparencia)
+        }) ?: return@runCatching null
 
         val rotation = try {
             when (ExifInterface(file.path).getAttributeInt(ExifInterface.TAG_ORIENTATION, ExifInterface.ORIENTATION_NORMAL)) {
@@ -60,7 +66,11 @@ object Photos {
         } catch (e: Exception) {
             0f
         }
-        if (rotation == 0f) return bmp
-        return Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, Matrix().apply { postRotate(rotation) }, true)
-    }
+        if (rotation == 0f) bmp
+        else try {
+            Bitmap.createBitmap(bmp, 0, 0, bmp.width, bmp.height, Matrix().apply { postRotate(rotation) }, true)
+        } catch (e: Throwable) {
+            bmp // si la rotación se queda sin memoria, mostrar la foto sin rotar
+        }
+    }.getOrNull()
 }

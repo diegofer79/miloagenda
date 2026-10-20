@@ -16,10 +16,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import org.milo.agenda.data.DeviceCalendar
 import org.milo.agenda.data.Event
 import org.milo.agenda.data.Store
 import org.milo.agenda.data.WeatherRepo
@@ -32,9 +36,28 @@ fun AgendaScreen(onBack: () -> Unit, onNew: (LocalDate) -> Unit, onEdit: (Event)
     var selEpoch by remember(initialDate) { mutableLongStateOf(initialDate.toEpochDay()) }
     val sel = LocalDate.ofEpochDay(selEpoch)
     var month by remember(initialDate) { mutableStateOf(initialDate.withDayOfMonth(1)) }
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    var syncing by remember { mutableStateOf(false) }
 
     Column(Modifier.fillMaxSize()) {
         TopBar("Agenda", onBack) {
+            // Sincronizar manual: fuerza la sync con Google y recarga.
+            IconButton(
+                onClick = {
+                    if (!syncing) scope.launch {
+                        syncing = true
+                        DeviceCalendar.requestSync()
+                        delay(6_000L)
+                        Store.refreshDeviceEvents(ctx)
+                        syncing = false
+                    }
+                },
+                enabled = DeviceCalendar.hasPermission(ctx),
+            ) {
+                if (syncing) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                else Icon(Icons.Rounded.Sync, "Sincronizar calendario")
+            }
             TextButton(onClick = { selEpoch = LocalDate.now().toEpochDay(); month = LocalDate.now().withDayOfMonth(1) }) {
                 Icon(Icons.Rounded.Today, null); Spacer(Modifier.width(6.dp)); Text("Hoy")
             }

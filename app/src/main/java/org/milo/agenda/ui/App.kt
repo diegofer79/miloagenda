@@ -61,12 +61,18 @@ fun App() {
     LaunchedEffect(screen, prefs.showDeviceCalendar) {
         if (prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) Store.refreshDeviceEvents(ctx)
     }
-    // Refresco periódico cada 5 min, solo con la app visible (no en protector ni brillo apagado).
+    // Fuerza la sincronización con Google cada 5 min y lee el proveedor, solo con la app visible
+    // (no en protector ni brillo apagado). El dispositivo solo auto-sincroniza cada 24 h, por eso
+    // forzamos una sync inmediata (como "Actualizar") para que los cambios aparezcan.
     LaunchedEffect(Unit) {
         while (true) {
-            delay(5 * 60_000L)
             if (Idle.resumed && !Idle.active && Store.prefs.showDeviceCalendar && DeviceCalendar.hasPermission(ctx)) {
+                DeviceCalendar.requestSync()
+                delay(8_000L)
                 Store.refreshDeviceEvents(ctx)
+                delay(5 * 60_000L - 8_000L)
+            } else {
+                delay(30_000L)
             }
         }
     }
