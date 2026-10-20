@@ -1,7 +1,5 @@
 package org.milo.agenda.ui
 
-import android.app.Activity
-import android.view.WindowManager
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -39,14 +37,12 @@ object Idle {
 }
 
 /**
- * Protector de pantalla: pasa las fotos de DCIM/milo en orden aleatorio, 30 s cada una.
- * Al terminar la vuelta completa, apaga la pantalla (brillo 0) para ahorrar — sigue respondiendo
- * al toque, así cualquier toque la "enciende" y vuelve a la app (sin usar el botón de power).
+ * Protector de pantalla: pasa las fotos de DCIM/milo en orden aleatorio, en bucle, con el intervalo
+ * configurado. Cualquier toque cierra y vuelve a la app (vía [onDismiss]).
  */
 @Composable
 fun Screensaver(onDismiss: () -> Unit) {
     val ctx = LocalContext.current
-    val window = (ctx as? Activity)?.window
     val photos = remember { Photos.shuffled(ctx) }
     if (photos.isEmpty()) {
         LaunchedEffect(Unit) { onDismiss() }
@@ -54,42 +50,17 @@ fun Screensaver(onDismiss: () -> Unit) {
     }
 
     var index by remember { mutableIntStateOf(0) }
-    var off by remember { mutableStateOf(false) }   // tras pasar todas: pantalla "apagada"
     var image by remember { mutableStateOf<ImageBitmap?>(null) }
 
-    // Brillo de la ventana: 0 cuando está "apagada", normal cuando muestra fotos.
-    DisposableEffect(off) {
-        window?.let { w ->
-            w.attributes = w.attributes.apply {
-                screenBrightness = if (off) 0f else WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-            }
-        }
-        onDispose {}
-    }
-    // Al salir del protector, restaurar siempre el brillo del sistema.
-    DisposableEffect(Unit) {
-        onDispose {
-            window?.let { w ->
-                w.attributes = w.attributes.apply {
-                    screenBrightness = WindowManager.LayoutParams.BRIGHTNESS_OVERRIDE_NONE
-                }
-            }
+    LaunchedEffect(index) {
+        image = withContext(Dispatchers.IO) {
+            Photos.loadScaled(photos[index % photos.size], 1920, 1200)?.asImageBitmap()
         }
     }
-
-    // Carga la foto actual (solo mientras no está apagada).
-    LaunchedEffect(index, off) {
-        if (!off) {
-            image = withContext(Dispatchers.IO) {
-                Photos.loadScaled(photos[index % photos.size], 1920, 1200)?.asImageBitmap()
-            }
-        }
-    }
-    // Avanza según el ajuste; al completar la vuelta, apaga.
     LaunchedEffect(Unit) {
-        while (!off) {
+        while (true) {
             delay(Store.prefs.screensaverPhotoSec.coerceAtLeast(5) * 1000L)
-            if (index >= photos.size - 1) off = true else index++
+            index++ // bucle infinito; se indexa con módulo
         }
     }
 
@@ -103,18 +74,15 @@ fun Screensaver(onDismiss: () -> Unit) {
             },
         contentAlignment = Alignment.Center,
     ) {
-        if (!off) {
-            Crossfade(targetState = image, animationSpec = tween(600), label = "foto") { img ->
-                if (img != null) {
-                    Image(
-                        bitmap = img,
-                        contentDescription = null,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Fit,
-                    )
-                }
+        Crossfade(targetState = image, animationSpec = tween(600), label = "foto") { img ->
+            if (img != null) {
+                Image(
+                    bitmap = img,
+                    contentDescription = null,
+                    modifier = Modifier.fillMaxSize(),
+                    contentScale = ContentScale.Fit,
+                )
             }
         }
-        // off == true -> solo negro (brillo a 0); un toque despierta y cierra.
     }
 }
