@@ -121,6 +121,8 @@ object LocalServer {
         val items = Store.notes.firstOrNull { it.title == "Compras" }?.items ?: emptyList()
         val list = items.joinToString("") { "<li class=\"${if (it.done) "done" else ""}\">${esc(it.text)}</li>" }
         val confirm = if (added != null) "<div class=ok>✓ Añadido: ${esc(added)}</div>" else ""
+        val copyBtn = if (items.isEmpty()) "" else
+            "<button type=button class=copy id=copy onclick=copyList()>Copiar lista</button>"
         return """<!doctype html><html lang=es><head><meta charset=utf-8>
 <meta name=viewport content="width=device-width,initial-scale=1">
 <title>Compras · Agenda Milo</title>
@@ -137,6 +139,8 @@ ul{list-style:none;padding:0;margin:8px 0}
 li{background:#FBF9F3;padding:13px 16px;border-radius:12px;margin-bottom:8px;font-size:16px;border:1px solid #E3E3DA}
 li.done{color:#75796E;text-decoration:line-through}
 .hint{color:#44483F;font-size:13px;margin-top:20px}
+.copy{width:100%;padding:14px 16px;background:#FBF9F3;color:#1B1C18;border:1px solid #C5C8BB;margin-top:4px}
+.copy:active{background:#E3E3DA}
 </style></head><body>
 <h1>🛒 Compras</h1>
 $confirm
@@ -145,7 +149,22 @@ $confirm
 <button type=submit>Añadir</button>
 </form>
 <ul>$list</ul>
+$copyBtn
 <p class=hint>Agenda Milo · se guarda en la tablet, por tu red WiFi</p>
+<script>
+function copyList(){
+  var text=Array.prototype.map.call(document.querySelectorAll('ul li'),function(li){return li.textContent;}).join('\n');
+  var done=function(){var b=document.getElementById('copy');b.textContent='✓ Copiada';setTimeout(function(){b.textContent='Copiar lista';},1500);};
+  if(navigator.clipboard&&navigator.clipboard.writeText){navigator.clipboard.writeText(text).then(done,function(){fallback(text,done);});}
+  else{fallback(text,done);}
+}
+function fallback(text,done){
+  var t=document.createElement('textarea');t.value=text;t.style.position='fixed';t.style.opacity='0';
+  document.body.appendChild(t);t.focus();t.select();
+  try{document.execCommand('copy');done();}catch(e){}
+  document.body.removeChild(t);
+}
+</script>
 </body></html>"""
     }
 }
