@@ -26,13 +26,15 @@ import org.milo.agenda.data.Store
 /** Inactividad para el protector de pantalla. [lastTouch] se refresca en cada toque (Activity). */
 object Idle {
     var lastTouch by mutableLongStateOf(System.currentTimeMillis())
-    var active by mutableStateOf(false)
-    var resumed by mutableStateOf(true) // la Activity está en primer plano (visible)
+    var active by mutableStateOf(false)      // protector de fotos a la vista (requiere fotos)
+    var allowSleep by mutableStateOf(false)  // permitir que el sistema apague la pantalla (haya o no fotos)
+    var resumed by mutableStateOf(true)      // la Activity está en primer plano (visible)
 
-    /** Cualquier toque: reinicia el contador y cierra el protector. */
+    /** Cualquier toque: reinicia el contador, cierra el protector y vuelve a bloquear la pantalla. */
     fun touched() {
         lastTouch = System.currentTimeMillis()
         active = false
+        allowSleep = false
     }
 }
 
@@ -60,7 +62,7 @@ fun Screensaver(onDismiss: () -> Unit) {
     LaunchedEffect(Unit) {
         while (true) {
             delay(Store.prefs.screensaverPhotoSec.coerceAtLeast(5) * 1000L)
-            index++ // bucle infinito; se indexa con módulo
+            if (Idle.resumed) index++ // bucle infinito; no avanzar con la pantalla apagada
         }
     }
 
