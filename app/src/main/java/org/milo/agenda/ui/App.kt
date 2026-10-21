@@ -77,14 +77,25 @@ fun App() {
         }
     }
 
-    // Protector de pantalla: tras 10 min sin tocar, si hay fotos, se activa.
+    // Tras la inactividad configurada, liberar el bloqueo de pantalla para que la tablet pueda
+    // apagarla sola (según el tiempo de espera del sistema), haya fotos o no. Al tocar, re-bloquear.
+    val activity = ctx as? android.app.Activity
+    LaunchedEffect(Idle.allowSleep) {
+        val window = activity?.window ?: return@LaunchedEffect
+        if (Idle.allowSleep) window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        else window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+    }
+
+    // Inactividad: pasado el tiempo configurado se permite apagar la pantalla; además, si hay
+    // fotos, se muestra el protector. El toque reinicia todo (ver Idle.touched).
     LaunchedEffect(prefs.screensaver) {
-        if (!prefs.screensaver) { Idle.active = false; return@LaunchedEffect }
+        if (!prefs.screensaver) { Idle.active = false; Idle.allowSleep = false; return@LaunchedEffect }
         while (true) {
             delay(5_000)
             val idleMs = prefs.screensaverIdleMin.coerceAtLeast(1) * 60_000L
-            if (!Idle.active && System.currentTimeMillis() - Idle.lastTouch > idleMs && Photos.count(ctx) > 0) {
-                Idle.active = true
+            if (System.currentTimeMillis() - Idle.lastTouch > idleMs) {
+                Idle.allowSleep = true
+                if (!Idle.active && Photos.count(ctx) > 0) Idle.active = true
             }
         }
     }
