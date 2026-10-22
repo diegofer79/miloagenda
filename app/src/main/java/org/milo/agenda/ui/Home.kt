@@ -132,6 +132,7 @@ fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
             RailItem(Icons.Rounded.CalendarMonth, "Agenda", current == Screen.Agenda, C.RailGreen) { nav(Screen.Agenda) }
             RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather, C.RailBlue) { nav(Screen.Weather) }
             RailItem(Icons.Rounded.StickyNote2, "Notas", current == Screen.Notes, C.RailPink) { nav(Screen.Notes) }
+            RailItem(Icons.Rounded.Home, "Casa", current == Screen.Casa, C.TimerSub) { nav(Screen.Casa) }
         }
         Spacer(Modifier.weight(1f))
         Box(
@@ -180,6 +181,7 @@ private fun Toolbar(nav: (Screen) -> Unit, onNew: () -> Unit) {
             RoundIcon(Icons.Rounded.CalendarMonth, "Agenda", Color.Transparent, C.RailGreen) { nav(Screen.Agenda) }
             RoundIcon(Icons.Rounded.FilterDrama, "Clima", Color.Transparent, C.RailBlue) { nav(Screen.Weather) }
             RoundIcon(Icons.Rounded.StickyNote2, "Notas", Color.Transparent, C.RailPink) { nav(Screen.Notes) }
+            RoundIcon(Icons.Rounded.Home, "Casa", Color.Transparent, C.TimerSub) { nav(Screen.Casa) }
             RoundIcon(Icons.Rounded.Settings, "Ajustes", Color.Transparent, C.Surface) { nav(Screen.Settings) }
         }
     }

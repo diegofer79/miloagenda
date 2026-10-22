@@ -53,6 +53,14 @@ val ALL_WIDGETS = listOf(
     "rain" to "Aviso de lluvia",
 )
 
+/** Interruptor de Home Assistant mostrado en la pantalla "Casa". */
+data class HomeSwitch(val name: String, val entityId: String, val icon: String)
+
+val DEFAULT_SWITCHES = listOf(
+    HomeSwitch("Palmera", "", "palm"),
+    HomeSwitch("Pileta", "", "pool"),
+)
+
 data class Prefs(
     val city: String = "Valencia",
     val lat: Double = 39.47,
@@ -64,6 +72,10 @@ data class Prefs(
     val screensaver: Boolean = true,        // protector de pantalla con fotos
     val screensaverIdleMin: Int = 10,       // minutos de inactividad antes del protector
     val screensaverPhotoSec: Int = 30,      // segundos por foto
+    // Home Assistant (API REST local). El token se guarda solo en la tablet (prefs.json), nunca en git.
+    val haUrl: String = "",                  // p. ej. http://192.168.1.50:8123
+    val haToken: String = "",                // token de acceso de larga duración
+    val switches: List<HomeSwitch> = DEFAULT_SWITCHES,
 )
 
 object Store {
@@ -148,6 +160,11 @@ object Store {
             put("screensaver", p.screensaver)
             put("screensaverIdleMin", p.screensaverIdleMin)
             put("screensaverPhotoSec", p.screensaverPhotoSec)
+            put("haUrl", p.haUrl)
+            put("haToken", p.haToken)
+            put("switches", JSONArray().apply {
+                p.switches.forEach { s -> put(JSONObject().put("name", s.name).put("entity", s.entityId).put("icon", s.icon)) }
+            })
         }.toString())
     }
 
@@ -206,6 +223,14 @@ object Store {
                 screensaver = o.optBoolean("screensaver", true),
                 screensaverIdleMin = o.optInt("screensaverIdleMin", 10),
                 screensaverPhotoSec = o.optInt("screensaverPhotoSec", 30),
+                haUrl = o.optString("haUrl", ""),
+                haToken = o.optString("haToken", ""),
+                switches = o.optJSONArray("switches")?.let { arr ->
+                    (0 until arr.length()).map { i ->
+                        val s = arr.getJSONObject(i)
+                        HomeSwitch(s.optString("name"), s.optString("entity"), s.optString("icon", "power"))
+                    }
+                } ?: DEFAULT_SWITCHES,
             )
         } }
 

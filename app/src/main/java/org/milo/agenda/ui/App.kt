@@ -34,7 +34,7 @@ import org.milo.agenda.data.WeatherRepo
 import java.time.LocalDate
 import java.time.LocalTime
 
-enum class Screen { Home, Agenda, Weather, Notes, Settings }
+enum class Screen { Home, Agenda, Weather, Notes, Casa, Settings }
 
 @Composable
 fun App() {
@@ -123,6 +123,7 @@ fun App() {
             Screen.Agenda -> AgendaScreen(initialDate = agendaDate, onBack = { screen = Screen.Home }, onNew = { newEvent(it) }, onEdit = { if (!it.fromDevice) editing = it })
             Screen.Weather -> WeatherScreen(onBack = { screen = Screen.Home })
             Screen.Notes -> NotesScreen(onBack = { screen = Screen.Home }, initialId = openNoteId)
+            Screen.Casa -> CasaScreen(onBack = { screen = Screen.Home }, onSettings = { screen = Screen.Settings })
             Screen.Settings -> SettingsScreen(onBack = { screen = Screen.Home })
         }
     }
