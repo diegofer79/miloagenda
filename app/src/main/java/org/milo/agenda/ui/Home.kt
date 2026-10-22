@@ -128,10 +128,10 @@ fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
         ) { Icon(Icons.Rounded.Add, "Nuevo", tint = C.OnPrimaryContainer) }
         Spacer(Modifier.height(20.dp))
         Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(14.dp)) {
-            RailItem(Icons.Rounded.Dashboard, "Inicio", current == Screen.Home) { nav(Screen.Home) }
-            RailItem(Icons.Rounded.DateRange, "Agenda", current == Screen.Agenda) { nav(Screen.Agenda) }
-            RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather) { nav(Screen.Weather) }
-            RailItem(Icons.Rounded.Description, "Notas", current == Screen.Notes) { nav(Screen.Notes) }
+            RailItem(Icons.Rounded.Dashboard, "Inicio", current == Screen.Home, C.RailGreen) { nav(Screen.Home) }
+            RailItem(Icons.Rounded.CalendarMonth, "Agenda", current == Screen.Agenda, C.RailGreen) { nav(Screen.Agenda) }
+            RailItem(Icons.Rounded.FilterDrama, "Clima", current == Screen.Weather, C.RailBlue) { nav(Screen.Weather) }
+            RailItem(Icons.Rounded.StickyNote2, "Notas", current == Screen.Notes, C.RailPink) { nav(Screen.Notes) }
         }
         Spacer(Modifier.weight(1f))
         Box(
@@ -145,7 +145,7 @@ fun NavRail(current: Screen, nav: (Screen) -> Unit, onNew: () -> Unit) {
 }
 
 @Composable
-private fun RailItem(icon: ImageVector, label: String, selected: Boolean = false, onClick: () -> Unit) {
+private fun RailItem(icon: ImageVector, label: String, selected: Boolean = false, accent: Color = C.Surface, onClick: () -> Unit) {
     Column(
         Modifier.clickable { onClick() }.padding(vertical = 2.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -155,7 +155,7 @@ private fun RailItem(icon: ImageVector, label: String, selected: Boolean = false
             Modifier.width(56.dp).height(32.dp).clip(RoundedCornerShape(16.dp))
                 .background(if (selected) C.PrimaryContainer else Color.Transparent),
             contentAlignment = Alignment.Center,
-        ) { Icon(icon, null, tint = if (selected) C.OnPrimaryContainer else C.Surface, modifier = Modifier.size(24.dp)) }
+        ) { Icon(icon, null, tint = if (selected) C.OnPrimaryContainer else accent, modifier = Modifier.size(24.dp)) }
         Text(label, fontSize = 12.sp, color = if (selected) C.Surface else C.OutlineVar,
             fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
     }
@@ -177,9 +177,9 @@ private fun Toolbar(nav: (Screen) -> Unit, onNew: () -> Unit) {
                 Icon(Icons.Rounded.Add, null, tint = C.OnPrimaryContainer)
                 Text("Nuevo", color = C.OnPrimaryContainer, fontSize = 15.sp, fontWeight = FontWeight.Medium)
             }
-            RoundIcon(Icons.Rounded.DateRange, "Agenda", Color.Transparent, C.Surface) { nav(Screen.Agenda) }
-            RoundIcon(Icons.Rounded.FilterDrama, "Clima", Color.Transparent, C.Surface) { nav(Screen.Weather) }
-            RoundIcon(Icons.Rounded.Description, "Notas", Color.Transparent, C.Surface) { nav(Screen.Notes) }
+            RoundIcon(Icons.Rounded.CalendarMonth, "Agenda", Color.Transparent, C.RailGreen) { nav(Screen.Agenda) }
+            RoundIcon(Icons.Rounded.FilterDrama, "Clima", Color.Transparent, C.RailBlue) { nav(Screen.Weather) }
+            RoundIcon(Icons.Rounded.StickyNote2, "Notas", Color.Transparent, C.RailPink) { nav(Screen.Notes) }
             RoundIcon(Icons.Rounded.Settings, "Ajustes", Color.Transparent, C.Surface) { nav(Screen.Settings) }
         }
     }
@@ -193,27 +193,27 @@ private fun ClockCard(now: LocalDateTime) {
         .mapNotNull { e -> e.alarmAtMillis()?.let { it to e } }
         .filter { it.first > System.currentTimeMillis() }
         .minByOrNull { it.first }
-    Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 28.dp, vertical = 16.dp)) {
+    Tile(C.ClockBg, Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 28.dp, vertical = 16.dp)) {
         Text(
             buildAnnotatedString {
                 append("%02d".format(now.hour))
-                withStyle(SpanStyle(color = C.Primary)) { append(":") }
+                withStyle(SpanStyle(color = C.ClockColon)) { append(":") }
                 append("%02d".format(now.minute))
             },
-            fontSize = 72.sp, fontWeight = FontWeight.Light, color = C.Ink, lineHeight = 72.sp, maxLines = 1, letterSpacing = (-2).sp,
+            fontSize = 72.sp, fontWeight = FontWeight.Light, color = Color.White, lineHeight = 72.sp, maxLines = 1, letterSpacing = (-2).sp,
         )
         Spacer(Modifier.height(6.dp))
-        Text(fmtLongDay(now.toLocalDate()), fontSize = 17.sp, color = C.InkVar)
+        Text(fmtLongDay(now.toLocalDate()), fontSize = 17.sp, color = C.ClockSub)
         if (nextAlarm != null) {
             Spacer(Modifier.height(18.dp))
             val (millis, e) = nextAlarm
             val at = java.time.Instant.ofEpochMilli(millis).atZone(java.time.ZoneId.systemDefault()).toLocalTime()
             Row(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(C.Secondary).padding(horizontal = 14.dp, vertical = 8.dp),
+                Modifier.clip(RoundedCornerShape(8.dp)).background(Color.White.copy(alpha = 0.14f)).padding(horizontal = 14.dp, vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                Icon(Icons.Rounded.Alarm, null, tint = C.OnSecondary, modifier = Modifier.size(18.dp))
-                Text("${at.format(HM)} · ${e.title}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.OnSecondary, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Icon(Icons.Rounded.Alarm, null, tint = C.ClockSub, modifier = Modifier.size(18.dp))
+                Text("${at.format(HM)} · ${e.title}", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.ClockSub, maxLines = 1, overflow = TextOverflow.Ellipsis)
             }
         }
     }
@@ -222,22 +222,22 @@ private fun ClockCard(now: LocalDateTime) {
 @Composable
 private fun WeatherCard(modifier: Modifier, onClick: () -> Unit) {
     val wx = WeatherRepo.data
-    Tile(C.PrimaryContainer, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 22.dp, vertical = 14.dp), onClick = onClick) {
+    Tile(C.WeatherBg, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 22.dp, vertical = 14.dp), onClick = onClick) {
         if (wx == null) {
             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                if (WeatherRepo.loading) CircularProgressIndicator(color = C.OnPrimaryContainer)
-                else Text("Sin datos de clima", color = C.OnPrimaryContainer)
+                if (WeatherRepo.loading) CircularProgressIndicator(color = Color.White)
+                else Text("Sin datos de clima", color = Color.White)
             }
             return@Tile
         }
         val today = WeatherRepo.day(LocalDate.now())
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Icon(weatherIcon(wx.code, wx.isDay), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(42.dp))
-            Text(deg(wx.temp), fontSize = 40.sp, color = C.OnPrimaryContainer, lineHeight = 40.sp)
+            Icon(weatherIcon(wx.code, wx.isDay), null, tint = Color.White, modifier = Modifier.size(42.dp))
+            Text(deg(wx.temp), fontSize = 40.sp, color = Color.White, lineHeight = 40.sp)
             Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                Text(Store.prefs.city, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.OnPrimaryContainer)
-                Text(weatherText(wx.code), fontSize = 12.sp, color = C.OnPrimaryContainer, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (today != null) Text("${deg(today.max)} / ${deg(today.min)}", fontSize = 12.sp, color = C.OnPrimaryContainer)
+                Text(Store.prefs.city, fontSize = 14.sp, fontWeight = FontWeight.Medium, color = Color.White)
+                Text(weatherText(wx.code), fontSize = 12.sp, color = Color.White, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                if (today != null) Text("${deg(today.max)} / ${deg(today.min)}", fontSize = 12.sp, color = Color.White)
             }
         }
         Spacer(Modifier.weight(1f))
@@ -246,9 +246,9 @@ private fun WeatherCard(modifier: Modifier, onClick: () -> Unit) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             hours.forEach { h ->
                 Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                    Text("%02d".format(h.time.hour), fontSize = 12.sp, color = C.OnPrimaryContainer)
-                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(18.dp))
-                    Text(deg(h.temp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = C.OnPrimaryContainer)
+                    Text("%02d".format(h.time.hour), fontSize = 12.sp, color = Color.White)
+                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = Color.White, modifier = Modifier.size(18.dp))
+                    Text(deg(h.temp), fontSize = 12.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
                 }
             }
         }
@@ -277,26 +277,26 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
         }
     }
 
-    Tile(C.SurfaceHigh, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 14.dp)) {
+    Tile(C.TimerBg, modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(horizontal = 24.dp, vertical = 14.dp)) {
         Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            Icon(Icons.Rounded.Timer, null, tint = C.Primary, modifier = Modifier.size(20.dp))
-            Text("Temporizador", fontSize = 15.sp, fontWeight = FontWeight.Medium, modifier = Modifier.weight(1f))
-            Text(if (running) "En marcha" else if (paused) "En pausa" else "Listo", fontSize = 13.sp, color = C.InkVar)
+            Icon(Icons.Rounded.HourglassTop, null, tint = C.TimerSub, modifier = Modifier.size(20.dp))
+            Text("Temporizador", fontSize = 15.sp, fontWeight = FontWeight.Medium, color = Color.White, modifier = Modifier.weight(1f))
+            Text(if (running) "En marcha" else if (paused) "En pausa" else "Listo", fontSize = 13.sp, color = C.TimerSub)
         }
         Spacer(Modifier.weight(1f))
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(
                 "%02d:%02d".format(remaining / 60, remaining % 60),
-                fontSize = 40.sp, fontWeight = FontWeight.Light, color = C.Ink, letterSpacing = (-1).sp,
+                fontSize = 40.sp, fontWeight = FontWeight.Light, color = Color.White, letterSpacing = (-1).sp,
                 modifier = Modifier.weight(1f),
             )
             TimerChip("+1") { addMin(1) }
             TimerChip("+5") { addMin(5) }
-            RoundIcon(Icons.Rounded.Refresh, "Reiniciar", C.Surface, C.InkVar, 44) {
+            RoundIcon(Icons.Rounded.Refresh, "Reiniciar", Color.White.copy(alpha = 0.2f), Color.White, 44) {
                 TimerState.endAt = 0L; TimerState.pausedMs = 0L; TimerState.minutes = 0
                 Alarms.cancel(ctx, Alarms.TIMER_ID)
             }
-            RoundIcon(if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (running) "Pausar" else "Iniciar", C.Primary, Color.White, 48) {
+            RoundIcon(if (running) Icons.Rounded.Pause else Icons.Rounded.PlayArrow, if (running) "Pausar" else "Iniciar", Color.White, C.TimerBg, 48) {
                 val t = System.currentTimeMillis()
                 when {
                     running -> { TimerState.pausedMs = TimerState.endAt - t; TimerState.endAt = 0L; Alarms.cancel(ctx, Alarms.TIMER_ID) }
@@ -312,10 +312,10 @@ private fun TimerCard(now: LocalDateTime, modifier: Modifier) {
 private fun TimerChip(label: String, onClick: () -> Unit) {
     Box(
         Modifier.height(44.dp).widthIn(min = 44.dp).clip(RoundedCornerShape(14.dp))
-            .background(C.Surface).clickable { onClick() }.padding(horizontal = 12.dp),
+            .background(Color.White.copy(alpha = 0.2f)).clickable { onClick() }.padding(horizontal = 12.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
+        Text(label, fontSize = 16.sp, fontWeight = FontWeight.SemiBold, color = Color.White)
     }
 }
 
@@ -388,35 +388,36 @@ private fun TodayColumn(modifier: Modifier, onEdit: (Event) -> Unit, onOpen: () 
 
 @Composable
 private fun HomeEventRow(e: Event, ctx: android.content.Context, onEdit: (Event) -> Unit) {
-    val (_, _, ink) = eventColors[e.color.coerceIn(0, eventColors.lastIndex)]
+    val (bg, fg, ink) = eventColors[e.color.coerceIn(0, eventColors.lastIndex)]
     val past = e.date == LocalDate.now() && e.end < LocalTime.now()
     val hour = WeatherRepo.hourAt(e.startAt)
     val on = e.alarmMinutes >= 0
     Row(
-        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).clickable { onEdit(e) }.padding(horizontal = 16.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().clip(RoundedCornerShape(18.dp)).background(if (past) C.SurfaceC else bg)
+            .clickable { onEdit(e) }.padding(horizontal = 16.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp),
     ) {
-        Text(e.start.format(HM), fontSize = 14.sp, color = if (past) C.Outline else C.InkVar, modifier = Modifier.width(52.dp))
+        Text(e.start.format(HM), fontSize = 14.sp, color = if (past) C.Outline else fg, modifier = Modifier.width(52.dp))
         Box(Modifier.width(4.dp).height(36.dp).clip(RoundedCornerShape(2.dp)).background(if (past) C.OutlineVar else ink))
         Column(Modifier.weight(1f)) {
-            Text(e.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = if (past) C.Outline else C.Ink,
+            Text(e.title, fontSize = 16.sp, fontWeight = FontWeight.Medium, color = if (past) C.Outline else fg,
                 textDecoration = if (past) TextDecoration.LineThrough else null, maxLines = 1, overflow = TextOverflow.Ellipsis)
             val sub = buildList {
                 if (e.place.isNotBlank()) add(e.place)
                 if (hour != null) add(deg(hour.temp) + if (hour.pop >= 50) " · lluvia ${hour.pop}%" else "")
             }.joinToString(" · ")
-            if (sub.isNotBlank()) Text(sub, fontSize = 14.sp, color = if (hour != null && hour.pop >= 50) C.TertiaryInk else C.InkVar, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            if (sub.isNotBlank()) Text(sub, fontSize = 14.sp, color = if (past) C.Outline else fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
         }
         when {
-            e.fromDevice -> Icon(Icons.Rounded.Event, "Del calendario", tint = C.Outline, modifier = Modifier.size(20.dp))
+            e.fromDevice -> Icon(Icons.Rounded.Event, "Del calendario", tint = if (past) C.Outline else fg, modifier = Modifier.size(20.dp))
             on -> Row(
-                Modifier.clip(RoundedCornerShape(8.dp)).background(C.Primary).padding(horizontal = 10.dp, vertical = 6.dp),
+                Modifier.clip(RoundedCornerShape(8.dp)).background(ink).padding(horizontal = 10.dp, vertical = 6.dp),
                 verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Icon(Icons.Rounded.Alarm, null, tint = Color.White, modifier = Modifier.size(16.dp))
+                Icon(Icons.Rounded.NotificationsActive, null, tint = Color.White, modifier = Modifier.size(16.dp))
                 Text(e.startAt.minusMinutes(e.alarmMinutes.toLong()).format(HM), fontSize = 13.sp, color = Color.White)
             }
-            !past -> IconButton(onClick = { toggleAlarm(ctx, e) }) { Icon(Icons.Rounded.AlarmAdd, "Crear alarma", tint = C.Outline) }
+            !past -> IconButton(onClick = { toggleAlarm(ctx, e) }) { Icon(Icons.Rounded.AlarmAdd, "Crear alarma", tint = fg) }
         }
     }
 }
