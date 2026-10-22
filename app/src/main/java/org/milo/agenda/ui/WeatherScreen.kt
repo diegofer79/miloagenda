@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -51,17 +52,17 @@ fun WeatherScreen(onBack: () -> Unit) {
         BoxWithConstraints(Modifier.weight(1f).fillMaxWidth()) {
             val wide = maxWidth > 760.dp
             val main: @Composable (Modifier) -> Unit = { m ->
-                Tile(C.PrimaryContainer, m, RoundedCornerShape(32.dp), PaddingValues(28.dp)) {
-                    Icon(weatherIcon(wx.code, wx.isDay), null, tint = C.OnPrimaryContainer, modifier = Modifier.size(if (wide) 130.dp else 88.dp))
-                    Text(deg(wx.temp), fontSize = if (wide) 120.sp else 84.sp, fontWeight = FontWeight.Light, color = C.OnPrimaryContainer, lineHeight = if (wide) 124.sp else 88.sp)
-                    Text(weatherText(wx.code), fontSize = 20.sp, color = C.OnPrimaryContainer)
+                Tile(C.WeatherBg, m, RoundedCornerShape(32.dp), PaddingValues(28.dp)) {
+                    Icon(weatherIcon(wx.code, wx.isDay), null, tint = Color.White, modifier = Modifier.size(if (wide) 130.dp else 88.dp))
+                    Text(deg(wx.temp), fontSize = if (wide) 120.sp else 84.sp, fontWeight = FontWeight.Light, color = Color.White, lineHeight = if (wide) 124.sp else 88.sp)
+                    Text(weatherText(wx.code), fontSize = 20.sp, color = Color.White)
                     Text(
                         listOfNotNull(today?.let { "Máx ${deg(it.max)} · Mín ${deg(it.min)}" }, "Sensación ${deg(wx.feels)}").joinToString(" · "),
-                        fontSize = 15.sp, color = C.OnPrimaryContainer,
+                        fontSize = 15.sp, color = Color.White,
                     )
                     if (wide) Spacer(Modifier.weight(1f)) else Spacer(Modifier.height(12.dp))
                     val ago = ((System.currentTimeMillis() - wx.fetched) / 60_000).coerceAtLeast(0)
-                    Text("Datos de Open-Meteo.com · actualizado hace $ago min", fontSize = 12.sp, color = C.OnPrimaryContainer)
+                    Text("Datos de Open-Meteo.com · actualizado hace $ago min", fontSize = 12.sp, color = Color.White)
                     WeatherRepo.error?.let { Text(it, fontSize = 12.sp, color = C.Error) }
                 }
             }

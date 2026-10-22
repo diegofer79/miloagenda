@@ -24,6 +24,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import org.milo.agenda.data.ALL_WIDGETS
 import org.milo.agenda.data.DeviceCalendar
+import org.milo.agenda.data.HomeAssistant
 import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Place
@@ -176,6 +177,66 @@ fun SettingsScreen(onBack: () -> Unit) {
                 }
             }
 
+            // ---- Casa (Home Assistant) ----
+            Section("Casa (Home Assistant)") {
+                Text("Controla interruptores de tu Home Assistant por la red local. El token se guarda solo en esta tablet.",
+                    fontSize = 13.sp, color = C.InkVar)
+                Spacer(Modifier.height(12.dp))
+                OutlinedTextField(
+                    value = prefs.haUrl,
+                    onValueChange = { Store.updatePrefs(prefs.copy(haUrl = it.filterNot(Char::isWhitespace))) },
+                    label = { Text("Dirección") },
+                    placeholder = { Text("http://192.168.1.50:8123") },
+                    singleLine = true, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(),
+                )
+                Spacer(Modifier.height(8.dp))
+                OutlinedTextField(
+                    value = prefs.haToken,
+                    onValueChange = { Store.updatePrefs(prefs.copy(haToken = it.filterNot(Char::isWhitespace))) },
+                    label = { Text("Token de acceso de larga duración") },
+                    // Multilínea a propósito: el token de HA suele copiarse con saltos de línea;
+                    // así el pegado llega completo y luego se le quitan los espacios. singleLine lo truncaría.
+                    singleLine = false, maxLines = 4, shape = RoundedCornerShape(16.dp), modifier = Modifier.fillMaxWidth(),
+                )
+                Text("En Home Assistant: tu perfil → Tokens de acceso de larga duración → Crear token.",
+                    fontSize = 12.sp, color = C.InkVar, modifier = Modifier.padding(top = 4.dp))
+
+                Spacer(Modifier.height(16.dp))
+                Text("Interruptores", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
+                prefs.switches.forEachIndexed { i, sw ->
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedTextField(
+                            value = sw.name,
+                            onValueChange = { v -> Store.updatePrefs(prefs.copy(switches = prefs.switches.set(i, sw.copy(name = v)))) },
+                            label = { Text("Nombre") }, singleLine = true, shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.weight(1f),
+                        )
+                        OutlinedTextField(
+                            value = sw.entityId,
+                            onValueChange = { v -> Store.updatePrefs(prefs.copy(switches = prefs.switches.set(i, sw.copy(entityId = v.trim())))) },
+                            label = { Text("entity_id") }, placeholder = { Text("switch.palmera") },
+                            singleLine = true, shape = RoundedCornerShape(16.dp),
+                            modifier = Modifier.weight(1.4f),
+                        )
+                    }
+                }
+
+                Spacer(Modifier.height(16.dp))
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(
+                        onClick = { scope.launch { HomeAssistant.refresh() } },
+                        enabled = HomeAssistant.configured() && !HomeAssistant.loading,
+                    ) { Text("Probar conexión") }
+                    if (HomeAssistant.loading) CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp)
+                    else HomeAssistant.error?.let { Text(it, fontSize = 13.sp, color = C.Error) }
+                        ?: run {
+                            val ok = prefs.switches.count { it.entityId.isNotBlank() && HomeAssistant.states[it.entityId] != null }
+                            if (ok > 0) Text("Conectado ($ok)", fontSize = 13.sp, color = C.Primary)
+                        }
+                }
+            }
+
             // ---- Acerca de ----
             Section("Acerca de") {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -201,6 +262,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 }
 
 private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
+private fun <T> List<T>.set(index: Int, value: T): List<T> = toMutableList().also { it[index] = value }
 
 @Composable
 private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {

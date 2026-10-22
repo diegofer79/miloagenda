@@ -1,7 +1,9 @@
 package org.milo.agenda
 
 import android.Manifest
+import android.content.Context
 import android.content.pm.PackageManager
+import android.net.wifi.WifiManager
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -16,10 +18,19 @@ import org.milo.agenda.ui.Idle
 import org.milo.agenda.ui.MiloTheme
 
 class MainActivity : ComponentActivity() {
+    private var wifiLock: WifiManager.WifiLock? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         // Mantener la pantalla encendida mientras la app está en primer plano (sin permisos).
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // Tablet de pared: evitar que el ahorro de energía apague la radio WiFi (cortaba Home Assistant).
+        val wifi = applicationContext.getSystemService(Context.WIFI_SERVICE) as? WifiManager
+        @Suppress("DEPRECATION")
+        wifiLock = wifi?.createWifiLock(WifiManager.WIFI_MODE_FULL_HIGH_PERF, "milo:wifi")?.apply {
+            setReferenceCounted(false)
+            runCatching { acquire() }
+        }
         Store.init(this)
         WeatherRepo.init(this)
         LocalServer.start { Store.addToCompras(it) } // añadir a Compras desde el teléfono (WiFi)
@@ -60,5 +71,6 @@ class MainActivity : ComponentActivity() {
     override fun onDestroy() {
         super.onDestroy()
         LocalServer.stop()
+        runCatching { wifiLock?.takeIf { it.isHeld }?.release() }
     }
 }

@@ -44,20 +44,33 @@ object C {
     val Outline = Color(0xFF75796E)
     val OutlineVar = Color(0xFFC5C8BB)
     val Error = Color(0xFFBA1A1A)
+
+    // Diseño 2b "Bloques vivos": reloj, clima y temporizador como bloques de color intenso.
+    val ClockBg = Color(0xFF2F4A22)
+    val ClockColon = Color(0xFF9ED67E)
+    val ClockSub = Color(0xFFCDEDB7)
+    val WeatherBg = Color(0xFF2E6A9E)
+    val TimerBg = Color(0xFFC25E00)
+    val TimerSub = Color(0xFFFFDCBE)
+    // Tintes de los iconos del riel oscuro (2b).
+    val RailGreen = Color(0xFFCDEDB7)
+    val RailBlue = Color(0xFFCFE5FF)
+    val RailPink = Color(0xFFFFDADA)
 }
 
-/** Fondo, texto, acento */
+/** Fondo, texto, acento — paleta de eventos del diseño 2b (bloques sólidos). */
 val eventColors = listOf(
-    Triple(C.Secondary, C.OnSecondary, C.Primary),
-    Triple(C.Tertiary, C.OnTertiary, C.TertiaryInk),
-    Triple(C.Peach, C.OnPeach, C.PeachInk),
+    Triple(Color(0xFFFFDADA), Color(0xFF40000A), Color(0xFFB3404A)),
+    Triple(Color(0xFFFFDCBE), Color(0xFF2C1600), Color(0xFFC25E00)),
+    Triple(Color(0xFFE9DDFF), Color(0xFF21124A), Color(0xFF66558E)),
 )
+/** Notas tipo pósit del diseño 2b. */
 val noteColors = listOf(
     C.SurfaceC to C.Ink,
-    C.PrimaryContainer to C.OnPrimaryContainer,
-    C.Tertiary to C.OnTertiary,
-    C.Peach to C.OnPeach,
-    C.Secondary to C.OnSecondary,
+    Color(0xFFB5EBC4) to Color(0xFF0B2000),
+    Color(0xFFFFE07A) to Color(0xFF2C1600),
+    Color(0xFFFFB4A8) to Color(0xFF40000A),
+    Color(0xFFE9DDFF) to Color(0xFF21124A),
 )
 
 @Composable
