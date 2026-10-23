@@ -115,6 +115,18 @@ fun weatherIcon(code: Int, day: Boolean = true): ImageVector = when (code) {
     else -> Icons.Rounded.Cloud
 }
 
+/** Color del icono del clima según la condición (sol ámbar, lluvia azul, tormenta púrpura…). */
+fun weatherTint(code: Int, day: Boolean = true): Color = when (code) {
+    0, 1, 2 -> if (day) Color(0xFFE6A100) else Color(0xFF5B6AA6) // despejado / parcial
+    3 -> Color(0xFF6E7B8A)                                       // nublado
+    45, 48 -> Color(0xFF8A94A0)                                  // niebla
+    in 51..57 -> Color(0xFF4F93C4)                               // llovizna
+    in 61..67, in 80..82 -> Color(0xFF2E6A9E)                    // lluvia (azul del clima)
+    in 71..77, 85, 86 -> Color(0xFF86B8DC)                       // nieve
+    in 95..99 -> Color(0xFF5B4B8A)                               // tormenta
+    else -> Color(0xFF6E7B8A)
+}
+
 fun weatherText(code: Int): String = when (code) {
     0 -> "Despejado"
     1 -> "Mayormente despejado"

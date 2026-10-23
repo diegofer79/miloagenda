@@ -68,14 +68,14 @@ fun WeatherScreen(onBack: () -> Unit) {
             }
             val detail: @Composable (Modifier) -> Unit = { m ->
                 Column(m, verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    Tile(C.SurfaceC, Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(vertical = 18.dp, horizontal = 12.dp)) {
+                    Tile(Color(0xFFEAF0F9), Modifier.fillMaxWidth(), RoundedCornerShape(28.dp), PaddingValues(vertical = 18.dp, horizontal = 12.dp)) {
                         Row(Modifier.fillMaxWidth()) {
                             hours.forEachIndexed { i, h ->
                                 val wet = h.pop >= 50
                                 Column(Modifier.weight(1f), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(8.dp)) {
                                     Text(if (i == 0) "Ahora" else "%02d".format(h.time.hour), fontSize = 13.sp,
                                         color = if (wet) C.TertiaryInk else C.InkVar, fontWeight = if (i == 0) FontWeight.SemiBold else FontWeight.Normal)
-                                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = if (wet) C.TertiaryInk else C.Ink, modifier = Modifier.size(26.dp))
+                                    Icon(weatherIcon(h.code, h.time.hour in 7..20), null, tint = weatherTint(h.code, h.time.hour in 7..20), modifier = Modifier.size(26.dp))
                                     Text(deg(h.temp), fontSize = 16.sp, color = if (wet) C.TertiaryInk else C.Ink)
                                     Text("${h.pop}%", fontSize = 13.sp, color = if (wet) C.TertiaryInk else C.InkVar,
                                         fontWeight = if (wet) FontWeight.SemiBold else FontWeight.Normal)
@@ -86,16 +86,22 @@ fun WeatherScreen(onBack: () -> Unit) {
                     Row(Modifier.fillMaxWidth().then(if (wide) Modifier.weight(1f) else Modifier), horizontalArrangement = Arrangement.spacedBy(16.dp)) {
                         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Stat(Icons.Rounded.Navigation, "Viento", "${wx.wind.roundToInt()} km/h", windName(wx.windDir), Modifier.weight(1f), rotate = wx.windDir + 180f)
-                                Stat(Icons.Rounded.Opacity, "Humedad", "${wx.humidity}%", "", Modifier.weight(1f))
+                                Stat(Icons.Rounded.Navigation, "Viento", "${wx.wind.roundToInt()} km/h", windName(wx.windDir),
+                                    Color(0xFFCFE5FF), Color(0xFF164463), Modifier.weight(1f), rotate = wx.windDir + 180f)
+                                Stat(Icons.Rounded.Opacity, "Humedad", "${wx.humidity}%", "",
+                                    C.Tertiary, C.TertiaryInk, Modifier.weight(1f))
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Stat(Icons.Rounded.WbSunny, "Índice UV", today?.uv?.roundToInt()?.toString() ?: "–", uvName(today?.uv ?: 0.0), Modifier.weight(1f))
-                                Stat(Icons.Rounded.Speed, "Presión", "${wx.pressure.roundToInt()}", "hPa", Modifier.weight(1f))
+                                Stat(Icons.Rounded.WbSunny, "Índice UV", today?.uv?.roundToInt()?.toString() ?: "–", uvName(today?.uv ?: 0.0),
+                                    C.Peach, C.PeachInk, Modifier.weight(1f))
+                                Stat(Icons.Rounded.Speed, "Presión", "${wx.pressure.roundToInt()}", "hPa",
+                                    Color(0xFFE9DDFF), Color(0xFF4A3A6E), Modifier.weight(1f))
                             }
                             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                                Stat(Icons.Rounded.WbSunny, "Amanecer", today?.sunrise?.format(HM) ?: "–", "", Modifier.weight(1f))
-                                Stat(Icons.Rounded.NightsStay, "Atardecer", today?.sunset?.format(HM) ?: "–", "", Modifier.weight(1f))
+                                Stat(Icons.Rounded.WbSunny, "Amanecer", today?.sunrise?.format(HM) ?: "–", "",
+                                    Color(0xFFFFE7A8), Color(0xFF6B4E00), Modifier.weight(1f))
+                                Stat(Icons.Rounded.NightsStay, "Atardecer", today?.sunset?.format(HM) ?: "–", "",
+                                    Color(0xFFD7DBF5), Color(0xFF363B66), Modifier.weight(1f))
                             }
                         }
                         Tile(C.SurfaceC, Modifier.weight(1f), RoundedCornerShape(28.dp), PaddingValues(horizontal = 20.dp, vertical = 12.dp)) {
@@ -105,7 +111,7 @@ fun WeatherScreen(onBack: () -> Unit) {
                             wx.days.forEach { d ->
                                 Row(Modifier.fillMaxWidth().height(44.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                     Text(if (d.date == LocalDate.now()) "Hoy" else fmtShortDay(d.date), Modifier.width(48.dp), fontSize = 15.sp)
-                                    Icon(weatherIcon(d.code), null, Modifier.size(22.dp))
+                                    Icon(weatherIcon(d.code), null, tint = weatherTint(d.code), modifier = Modifier.size(22.dp))
                                     Text(deg(d.min), Modifier.width(36.dp), fontSize = 15.sp, color = C.InkVar)
                                     BoxWithConstraints(Modifier.weight(1f).height(6.dp).clip(RoundedCornerShape(3.dp)).background(C.SurfaceHighest)) {
                                         val start = ((d.min - lo) / span).toFloat()
@@ -133,16 +139,16 @@ fun WeatherScreen(onBack: () -> Unit) {
 }
 
 @Composable
-private fun Stat(icon: ImageVector, label: String, value: String, unit: String, modifier: Modifier, rotate: Float = 0f) {
-    Tile(C.SurfaceC, modifier, RoundedCornerShape(24.dp), PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
+private fun Stat(icon: ImageVector, label: String, value: String, unit: String, bg: Color, ink: Color, modifier: Modifier, rotate: Float = 0f) {
+    Tile(bg, modifier, RoundedCornerShape(24.dp), PaddingValues(horizontal = 18.dp, vertical = 14.dp)) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Icon(icon, null, tint = C.InkVar, modifier = Modifier.size(18.dp).rotate(rotate))
-            Text(label, fontSize = 13.sp, color = C.InkVar)
+            Icon(icon, null, tint = ink, modifier = Modifier.size(18.dp).rotate(rotate))
+            Text(label, fontSize = 13.sp, color = ink.copy(alpha = 0.75f))
         }
         Spacer(Modifier.height(6.dp))
         Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            Text(value, fontSize = 24.sp)
-            if (unit.isNotEmpty()) Text(unit, fontSize = 14.sp, color = C.InkVar, modifier = Modifier.padding(bottom = 3.dp))
+            Text(value, fontSize = 24.sp, fontWeight = FontWeight.Medium, color = ink)
+            if (unit.isNotEmpty()) Text(unit, fontSize = 14.sp, color = ink.copy(alpha = 0.75f), modifier = Modifier.padding(bottom = 3.dp))
         }
     }
 }
