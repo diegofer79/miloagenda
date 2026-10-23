@@ -10,6 +10,9 @@ import org.json.JSONObject
 import java.net.HttpURLConnection
 import java.net.URL
 
+/** Estado de un interruptor: encendido, apagado o no disponible (dispositivo offline en HA). */
+enum class SwState { ON, OFF, UNAVAILABLE }
+
 /**
  * Controla interruptores vía la API REST local de Home Assistant.
  * HA local va por HTTP en la LAN (p. ej. http://192.168.1.50:8123), así que se usa
@@ -18,8 +21,8 @@ import java.net.URL
  * (switch.* -> switch/toggle, light.* -> light/toggle, etc.); "toggle" existe en todos.
  */
 object HomeAssistant {
-    /** Estado por entity_id: true = encendido, false = apagado, null = desconocido. */
-    val states = mutableStateMapOf<String, Boolean?>()
+    /** Estado por entity_id. Si la clave no está, aún no se consultó. */
+    val states = mutableStateMapOf<String, SwState>()
     var loading by mutableStateOf(false); private set
     var error by mutableStateOf<String?>(null); private set
 
@@ -49,7 +52,7 @@ object HomeAssistant {
                         when (r.code) {
                             200 -> states[id] = parseState(r.body)
                             401, 403 -> auth = true
-                            404 -> { missing += id; states[id] = null }
+                            404 -> { missing += id; states[id] = SwState.UNAVAILABLE }
                             else -> netFail++
                         }
                     } catch (e: Exception) {
@@ -95,9 +98,12 @@ object HomeAssistant {
     // ---------- HTTP ----------
     private data class Resp(val code: Int, val body: String?)
 
-    private fun parseState(json: String?): Boolean? =
-        runCatching { JSONObject(json ?: "").optString("state") }.getOrNull()
-            .let { when (it) { "on" -> true; "off" -> false; else -> null } }
+    private fun parseState(json: String?): SwState =
+        when (runCatching { JSONObject(json ?: "").optString("state") }.getOrNull()) {
+            "on" -> SwState.ON
+            "off" -> SwState.OFF
+            else -> SwState.UNAVAILABLE // "unavailable", "unknown", vacío…
+        }
 
     /**
      * Petición con reintentos: la WiFi de la tablet puede perder paquetes y hacer que el primer
