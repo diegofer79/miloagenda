@@ -8,3 +8,6 @@ local.properties
 captures/
 *.keystore
 *.jks
+
+# Kotlin daemon/build artifacts
+.kotlin/

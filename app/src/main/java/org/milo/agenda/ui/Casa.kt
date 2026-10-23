@@ -13,6 +13,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -27,6 +28,7 @@ import org.milo.agenda.R
 import org.milo.agenda.data.HomeAssistant
 import org.milo.agenda.data.HomeSwitch
 import org.milo.agenda.data.Store
+import org.milo.agenda.data.SwState
 
 /** Interruptores de Home Assistant. Tarjetas de tamaño fijo que se acomodan en una grilla. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -86,13 +88,16 @@ private fun CasaHint(text: String, onSettings: () -> Unit) {
 }
 
 @Composable
-private fun SwitchCard(s: HomeSwitch, on: Boolean?, onToggle: () -> Unit) {
-    val isOn = on == true
-    // Encendido = bloque verde pleno con texto blanco (se lee a distancia); apagado = tarjeta clara y apagada.
+private fun SwitchCard(s: HomeSwitch, state: SwState?, onToggle: () -> Unit) {
+    val isOn = state == SwState.ON
+    val unavailable = state == SwState.UNAVAILABLE
+    // Encendido = bloque verde pleno con texto blanco (se lee a distancia); apagado = tarjeta clara;
+    // no disponible = tarjeta atenuada.
     val bg by animateColorAsState(if (isOn) C.Primary else C.SurfaceHigh, label = "switchBg")
     val fg = if (isOn) Color.White else C.InkVar
     Column(
         Modifier.size(width = 208.dp, height = 150.dp)
+            .then(if (unavailable) Modifier.alpha(0.55f) else Modifier)
             .clip(RoundedCornerShape(28.dp)).background(bg).clickable { onToggle() }
             .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.SpaceBetween,
@@ -107,7 +112,12 @@ private fun SwitchCard(s: HomeSwitch, on: Boolean?, onToggle: () -> Unit) {
         Column {
             Text(s.name, fontSize = 19.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
-                when (on) { true -> "Encendido"; false -> "Apagado"; null -> "–" },
+                when (state) {
+                    SwState.ON -> "Encendido"
+                    SwState.OFF -> "Apagado"
+                    SwState.UNAVAILABLE -> "No disponible"
+                    null -> "–"
+                },
                 fontSize = 14.sp, color = if (isOn) Color.White.copy(alpha = 0.85f) else C.Outline,
             )
         }
