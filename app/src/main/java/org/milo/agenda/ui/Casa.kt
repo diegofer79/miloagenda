@@ -1,5 +1,6 @@
 package org.milo.agenda.ui
 
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -58,9 +59,9 @@ fun CasaScreen(onBack: () -> Unit, onSettings: () -> Unit) {
                 }
                 FlowRow(
                     Modifier.fillMaxWidth().verticalScroll(rememberScrollState())
-                        .padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 24.dp),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                        .padding(start = 24.dp, end = 24.dp, top = 12.dp, bottom = 24.dp),
+                    horizontalArrangement = Arrangement.spacedBy(18.dp),
+                    verticalArrangement = Arrangement.spacedBy(18.dp),
                     maxItemsInEachRow = 4,
                 ) {
                     switches.forEach { s ->
@@ -87,26 +88,27 @@ private fun CasaHint(text: String, onSettings: () -> Unit) {
 @Composable
 private fun SwitchCard(s: HomeSwitch, on: Boolean?, onToggle: () -> Unit) {
     val isOn = on == true
-    val bg = if (isOn) C.PrimaryContainer else C.SurfaceC
-    val fg = if (isOn) C.OnPrimaryContainer else C.InkVar
+    // Encendido = bloque verde pleno con texto blanco (se lee a distancia); apagado = tarjeta clara y apagada.
+    val bg by animateColorAsState(if (isOn) C.Primary else C.SurfaceHigh, label = "switchBg")
+    val fg = if (isOn) Color.White else C.InkVar
     Column(
-        Modifier.size(width = 172.dp, height = 136.dp)
-            .clip(RoundedCornerShape(24.dp)).background(bg).clickable { onToggle() }
-            .padding(horizontal = 18.dp, vertical = 16.dp),
+        Modifier.size(width = 208.dp, height = 150.dp)
+            .clip(RoundedCornerShape(28.dp)).background(bg).clickable { onToggle() }
+            .padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-            HomeSwitchIcon(s.icon, fg, 40)
+            HomeSwitchIcon(s.icon, if (isOn) Color.White else C.Outline, 44)
             Icon(
                 if (isOn) Icons.Rounded.ToggleOn else Icons.Rounded.ToggleOff, null,
-                tint = if (isOn) C.Primary else C.OutlineVar, modifier = Modifier.size(32.dp),
+                tint = if (isOn) Color.White else C.OutlineVar, modifier = Modifier.size(36.dp),
             )
         }
         Column {
-            Text(s.name, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            Text(s.name, fontSize = 19.sp, fontWeight = FontWeight.Medium, color = fg, maxLines = 1, overflow = TextOverflow.Ellipsis)
             Text(
                 when (on) { true -> "Encendido"; false -> "Apagado"; null -> "–" },
-                fontSize = 13.sp, color = if (isOn) C.Primary else C.Outline,
+                fontSize = 14.sp, color = if (isOn) Color.White.copy(alpha = 0.85f) else C.Outline,
             )
         }
     }
