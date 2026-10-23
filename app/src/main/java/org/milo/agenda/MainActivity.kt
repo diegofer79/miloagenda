@@ -32,6 +32,7 @@ class MainActivity : ComponentActivity() {
             runCatching { acquire() }
         }
         Store.init(this)
+        org.milo.agenda.data.Alarms.rescheduleSwitchOffs(this) // reactiva apagados pendientes (o apaga los vencidos)
         WeatherRepo.init(this)
         LocalServer.start { Store.addToCompras(it) } // añadir a Compras desde el teléfono (WiFi)
         requestStartupPermissions()

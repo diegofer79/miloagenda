@@ -7,6 +7,7 @@ import android.content.Intent
 import android.os.Build
 import org.milo.agenda.AlarmReceiver
 import org.milo.agenda.MainActivity
+import org.milo.agenda.SwitchOffReceiver
 
 object Alarms {
     const val TIMER_ID = 1L
@@ -51,4 +52,37 @@ object Alarms {
     }
 
     fun rescheduleAll(ctx: Context) = Store.events.forEach { scheduleEvent(ctx, it) }
+
+    // ---------- auto-apagado de interruptores de Home Assistant ----------
+    private fun switchIntent(ctx: Context, entity: String) =
+        Intent(ctx, SwitchOffReceiver::class.java).putExtra("entity", entity)
+
+    private fun switchPending(ctx: Context, entity: String): PendingIntent =
+        PendingIntent.getBroadcast(ctx, "haoff:$entity".hashCode(), switchIntent(ctx, entity), flags())
+
+    /** Programa (o dispara, si ya pasó) el apagado de [entity] en [atMillis]. Exacta, sobrevive reposo. */
+    fun scheduleSwitchOff(ctx: Context, entity: String, atMillis: Long) {
+        if (atMillis <= System.currentTimeMillis()) { ctx.sendBroadcast(switchIntent(ctx, entity)); return }
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val pi = switchPending(ctx, entity)
+        try {
+            if (Build.VERSION.SDK_INT >= 23) am.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, atMillis, pi)
+            else am.setExact(AlarmManager.RTC_WAKEUP, atMillis, pi)
+        } catch (_: SecurityException) {
+            am.set(AlarmManager.RTC_WAKEUP, atMillis, pi)
+        }
+    }
+
+    fun cancelSwitchOff(ctx: Context, entity: String) {
+        val am = ctx.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        am.cancel(switchPending(ctx, entity))
+    }
+
+    /** Reprograma los apagados pendientes (al arrancar / al reiniciar el dispositivo). */
+    fun rescheduleSwitchOffs(ctx: Context) {
+        val now = System.currentTimeMillis()
+        Store.prefs.haAutoOff.forEach { (entity, at) ->
+            if (at > now) scheduleSwitchOff(ctx, entity, at) else ctx.sendBroadcast(switchIntent(ctx, entity))
+        }
+    }
 }

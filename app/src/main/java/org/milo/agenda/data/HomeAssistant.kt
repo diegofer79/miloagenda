@@ -1,5 +1,6 @@
 package org.milo.agenda.data
 
+import android.content.Context
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateMapOf
 import androidx.compose.runtime.mutableStateOf
@@ -71,27 +72,54 @@ object HomeAssistant {
         }
     }
 
-    /** Cambia el interruptor y refresca su estado. */
-    suspend fun toggle(entityId: String) {
+    /**
+     * Toque en la tarjeta: si está encendido lo apaga; si no, lo enciende y programa el auto-apagado
+     * según las horas configuradas del interruptor (0 = para siempre).
+     */
+    suspend fun press(ctx: Context, entityId: String) {
         if (!configured() || entityId.isBlank()) return
         error = null
+        val turnOn = states[entityId] != SwState.ON
         try {
-            val domain = entityId.substringBefore('.', "switch").ifBlank { "switch" }
-            withContext(Dispatchers.IO) {
-                val r = request("/api/services/$domain/toggle", "POST", JSONObject().put("entity_id", entityId).toString())
-                when (r.code) {
-                    in 200..299 -> runCatching {
-                        val s = request("/api/states/$entityId", "GET")
-                        if (s.code == 200) states[entityId] = parseState(s.body)
-                    }
-                    401, 403 -> error = "Token rechazado. Revisa el token de Home Assistant."
-                    404 -> error = "No existe $entityId. Revisa el entity_id."
-                    else -> error = "Home Assistant respondió ${r.code}."
-                }
+            val ok = withContext(Dispatchers.IO) { setSwitch(entityId, turnOn) }
+            if (ok && turnOn) {
+                val h = (Store.prefs.switches.firstOrNull { it.entityId == entityId }?.hours ?: 1).coerceAtLeast(0)
+                if (h > 0) Store.setAutoOff(ctx, entityId, System.currentTimeMillis() + h * 3_600_000L)
+                else Store.clearAutoOff(ctx, entityId) // 0 = queda encendido sin temporizador
+            } else if (ok) {
+                Store.clearAutoOff(ctx, entityId)
             }
         } catch (e: Exception) {
             error = "No se llega a ${base()}. Revisa IP/puerto y la WiFi."
-            android.util.Log.w("Milo-HA", "toggle $entityId falló: ${e.javaClass.simpleName} ${e.message}")
+            android.util.Log.w("Milo-HA", "press $entityId falló: ${e.javaClass.simpleName} ${e.message}")
+        }
+    }
+
+    /** Llama turn_on/turn_off y relee el estado. Devuelve true si HA aceptó (2xx). */
+    private fun setSwitch(entityId: String, on: Boolean): Boolean {
+        val domain = entityId.substringBefore('.', "switch").ifBlank { "switch" }
+        val r = request("/api/services/$domain/${if (on) "turn_on" else "turn_off"}", "POST",
+            JSONObject().put("entity_id", entityId).toString())
+        return when (r.code) {
+            in 200..299 -> {
+                runCatching {
+                    val s = request("/api/states/$entityId", "GET")
+                    if (s.code == 200) states[entityId] = parseState(s.body)
+                }
+                true
+            }
+            401, 403 -> { error = "Token rechazado. Revisa el token de Home Assistant."; false }
+            404 -> { error = "No existe $entityId. Revisa el entity_id."; false }
+            else -> { error = "Home Assistant respondió ${r.code}."; false }
+        }
+    }
+
+    /** Apaga de forma bloqueante y con reintentos. Lo usa el receiver del temporizador. */
+    fun turnOffSync(entityId: String): Boolean {
+        if (!configured() || entityId.isBlank()) return false
+        return try { setSwitch(entityId, false) } catch (e: Exception) {
+            android.util.Log.w("Milo-HA", "turnOffSync $entityId: ${e.javaClass.simpleName}")
+            false
         }
     }
 
