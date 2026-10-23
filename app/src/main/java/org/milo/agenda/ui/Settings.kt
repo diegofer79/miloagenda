@@ -25,6 +25,7 @@ import kotlinx.coroutines.launch
 import org.milo.agenda.data.ALL_WIDGETS
 import org.milo.agenda.data.DeviceCalendar
 import org.milo.agenda.data.HomeAssistant
+import org.milo.agenda.data.HomeSwitch
 import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Place
@@ -203,22 +204,42 @@ fun SettingsScreen(onBack: () -> Unit) {
 
                 Spacer(Modifier.height(16.dp))
                 Text("Interruptores", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
-                prefs.switches.forEachIndexed { i, sw ->
+                Text("Toca el icono para cambiarlo. Escribe en la fila vacía para agregar otro.",
+                    fontSize = 12.sp, color = C.InkVar)
+                val sws = prefs.switches
+                // Las guardadas + una fila vacía al final: al escribir en ella se agrega y aparece otra.
+                (sws + HomeSwitch("", "", "power")).forEachIndexed { i, sw ->
+                    val isNew = i >= sws.size
+                    fun put(updated: HomeSwitch) =
+                        Store.updatePrefs(prefs.copy(switches = if (isNew) sws + updated else sws.set(i, updated)))
                     Spacer(Modifier.height(8.dp))
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        // Icono: tocar para ciclar entre los disponibles (solo en filas ya creadas).
+                        Box(
+                            Modifier.size(48.dp).clip(RoundedCornerShape(14.dp)).background(C.SurfaceHigh)
+                                .then(if (isNew) Modifier else Modifier.clickable {
+                                    val next = homeIconKeys[(homeIconKeys.indexOf(sw.icon).coerceAtLeast(0) + 1) % homeIconKeys.size]
+                                    put(sw.copy(icon = next))
+                                }),
+                            contentAlignment = Alignment.Center,
+                        ) { HomeSwitchIcon(if (isNew) "power" else sw.icon, if (isNew) C.OutlineVar else C.Primary, 24) }
                         OutlinedTextField(
                             value = sw.name,
-                            onValueChange = { v -> Store.updatePrefs(prefs.copy(switches = prefs.switches.set(i, sw.copy(name = v)))) },
+                            onValueChange = { put(sw.copy(name = it)) },
                             label = { Text("Nombre") }, singleLine = true, shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.weight(1f),
                         )
                         OutlinedTextField(
                             value = sw.entityId,
-                            onValueChange = { v -> Store.updatePrefs(prefs.copy(switches = prefs.switches.set(i, sw.copy(entityId = v.trim())))) },
-                            label = { Text("entity_id") }, placeholder = { Text("switch.palmera") },
+                            onValueChange = { put(sw.copy(entityId = it.trim())) },
+                            label = { Text("entity_id") }, placeholder = { Text("switch.algo") },
                             singleLine = true, shape = RoundedCornerShape(16.dp),
                             modifier = Modifier.weight(1.4f),
                         )
+                        if (isNew) Spacer(Modifier.width(48.dp))
+                        else IconButton(onClick = { Store.updatePrefs(prefs.copy(switches = sws.filterIndexed { idx, _ -> idx != i })) }) {
+                            Icon(Icons.Rounded.Delete, "Borrar", tint = C.Error)
+                        }
                     }
                 }
 

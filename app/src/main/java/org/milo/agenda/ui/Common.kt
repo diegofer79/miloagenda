@@ -15,6 +15,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -176,6 +177,29 @@ fun Pill(text: String, icon: ImageVector?, bg: Color, fg: Color, onClick: () -> 
         if (icon != null) Icon(icon, null, tint = fg, modifier = Modifier.size(18.dp))
         Text(text, color = fg, fontSize = 14.sp, fontWeight = FontWeight.Medium)
     }
+}
+
+/** Iconos elegibles para los interruptores de Home Assistant (pantalla Casa). */
+val homeIconKeys = listOf("palm", "pool", "bulb", "power", "water", "bolt", "ac", "garden", "fan")
+
+/** Icono de un interruptor: "palm" usa un vector propio; el resto son de Material. */
+@Composable
+fun HomeSwitchIcon(key: String, tint: Color, size: Int) {
+    if (key == "palm") {
+        Icon(painterResource(org.milo.agenda.R.drawable.ic_palm), null, tint = tint, modifier = Modifier.size(size.dp))
+        return
+    }
+    val vector: ImageVector = when (key) {
+        "pool" -> Icons.Rounded.Pool
+        "bulb" -> Icons.Rounded.Lightbulb
+        "water" -> Icons.Rounded.WaterDrop
+        "bolt" -> Icons.Rounded.Bolt
+        "ac" -> Icons.Rounded.AcUnit
+        "garden" -> Icons.Rounded.Yard
+        "fan" -> Icons.Rounded.Air
+        else -> Icons.Rounded.Power
+    }
+    Icon(vector, null, tint = tint, modifier = Modifier.size(size.dp))
 }
 
 @Composable
