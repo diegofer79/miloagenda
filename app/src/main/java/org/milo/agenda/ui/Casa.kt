@@ -96,7 +96,7 @@ private fun SwitchCard(s: HomeSwitch, on: Boolean?, onToggle: () -> Unit) {
         verticalArrangement = Arrangement.SpaceBetween,
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Top) {
-            HomeIcon(s.icon, fg, 40)
+            HomeSwitchIcon(s.icon, fg, 40)
             Icon(
                 if (isOn) Icons.Rounded.ToggleOn else Icons.Rounded.ToggleOff, null,
                 tint = if (isOn) C.Primary else C.OutlineVar, modifier = Modifier.size(32.dp),
@@ -110,24 +110,4 @@ private fun SwitchCard(s: HomeSwitch, on: Boolean?, onToggle: () -> Unit) {
             )
         }
     }
-}
-
-/** Icono del interruptor: "palm" usa un vector propio; el resto son iconos de Material. */
-@Composable
-private fun HomeIcon(key: String, tint: Color, size: Int) {
-    if (key == "palm") {
-        Icon(painterResource(R.drawable.ic_palm), null, tint = tint, modifier = Modifier.size(size.dp))
-        return
-    }
-    val vector: ImageVector = when (key) {
-        "pool" -> Icons.Rounded.Pool
-        "bulb" -> Icons.Rounded.Lightbulb
-        "water" -> Icons.Rounded.WaterDrop
-        "bolt" -> Icons.Rounded.Bolt
-        "ac" -> Icons.Rounded.AcUnit
-        "garden" -> Icons.Rounded.Yard
-        "fan" -> Icons.Rounded.Air
-        else -> Icons.Rounded.Power
-    }
-    Icon(vector, null, tint = tint, modifier = Modifier.size(size.dp))
 }
