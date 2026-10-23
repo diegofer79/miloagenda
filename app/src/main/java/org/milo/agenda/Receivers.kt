@@ -9,8 +9,11 @@ import android.content.Intent
 import android.media.AudioAttributes
 import android.media.RingtoneManager
 import android.os.Build
+import android.os.Handler
+import android.os.Looper
 import androidx.core.app.NotificationCompat
 import org.milo.agenda.data.Alarms
+import org.milo.agenda.data.HomeAssistant
 import org.milo.agenda.data.Store
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -49,10 +52,30 @@ class AlarmReceiver : BroadcastReceiver() {
     }
 }
 
+/** Apaga un interruptor de Home Assistant cuando vence su temporizador. */
+class SwitchOffReceiver : BroadcastReceiver() {
+    override fun onReceive(ctx: Context, intent: Intent) {
+        val entity = intent.getStringExtra("entity")?.takeIf { it.isNotBlank() } ?: return
+        val pending = goAsync() // ventana para completar la llamada de red fuera del hilo principal
+        Thread {
+            try {
+                Store.init(ctx)
+                HomeAssistant.turnOffSync(entity) // reintenta internamente ante WiFi inestable
+                // quitar de la lista de pendientes (estado de Compose -> hilo principal)
+                Handler(Looper.getMainLooper()).post { Store.clearAutoOff(ctx, entity) }
+            } catch (_: Exception) {
+            } finally {
+                pending.finish()
+            }
+        }.start()
+    }
+}
+
 class BootReceiver : BroadcastReceiver() {
     override fun onReceive(ctx: Context, intent: Intent) {
         if (intent.action != Intent.ACTION_BOOT_COMPLETED) return
         Store.init(ctx)
         Alarms.rescheduleAll(ctx)
+        Alarms.rescheduleSwitchOffs(ctx)
     }
 }

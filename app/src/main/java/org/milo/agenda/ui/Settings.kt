@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -204,7 +205,7 @@ fun SettingsScreen(onBack: () -> Unit) {
 
                 Spacer(Modifier.height(16.dp))
                 Text("Interruptores", fontSize = 14.sp, fontWeight = FontWeight.SemiBold, color = C.Primary)
-                Text("Toca el icono para cambiarlo. Escribe en la fila vacía para agregar otro.",
+                Text("Toca el icono para cambiarlo. Escribe en la fila vacía para agregar otro. «máx» = horas máximas encendido (el −/+ y el temporizador están en cada tarjeta).",
                     fontSize = 12.sp, color = C.InkVar)
                 val sws = prefs.switches
                 // Las guardadas + una fila vacía al final: al escribir en ella se agrega y aparece otra.
@@ -234,11 +235,22 @@ fun SettingsScreen(onBack: () -> Unit) {
                             onValueChange = { put(sw.copy(entityId = it.trim())) },
                             label = { Text("entity_id") }, placeholder = { Text("switch.algo") },
                             singleLine = true, shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.weight(1.4f),
+                            modifier = Modifier.weight(1.2f),
                         )
-                        if (isNew) Spacer(Modifier.width(48.dp))
-                        else IconButton(onClick = { Store.updatePrefs(prefs.copy(switches = sws.filterIndexed { idx, _ -> idx != i })) }) {
-                            Icon(Icons.Rounded.Delete, "Borrar", tint = C.Error)
+                        if (isNew) {
+                            Spacer(Modifier.width(188.dp))
+                        } else {
+                            // Máx. horas que puede quedar encendido (tope del −/+ de la tarjeta). 1..5.
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text("máx", fontSize = 12.sp, color = C.InkVar)
+                                MiniStep("−") { val m = (sw.maxHours - 1).coerceIn(1, 5); put(sw.copy(maxHours = m, hours = sw.hours.coerceAtMost(m))) }
+                                Text("${sw.maxHours} h", fontSize = 14.sp, fontWeight = FontWeight.Medium, color = C.Ink,
+                                    textAlign = TextAlign.Center, modifier = Modifier.width(34.dp))
+                                MiniStep("+") { put(sw.copy(maxHours = (sw.maxHours + 1).coerceIn(1, 5))) }
+                            }
+                            IconButton(onClick = { Store.updatePrefs(prefs.copy(switches = sws.filterIndexed { idx, _ -> idx != i })) }) {
+                                Icon(Icons.Rounded.Delete, "Borrar", tint = C.Error)
+                            }
                         }
                     }
                 }
@@ -284,6 +296,14 @@ fun SettingsScreen(onBack: () -> Unit) {
 
 private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
 private fun <T> List<T>.set(index: Int, value: T): List<T> = toMutableList().also { it[index] = value }
+
+@Composable
+private fun MiniStep(label: String, onClick: () -> Unit) {
+    Box(
+        Modifier.size(32.dp).clip(CircleShape).background(C.SurfaceHigh).clickable { onClick() },
+        contentAlignment = Alignment.Center,
+    ) { Text(label, fontSize = 18.sp, fontWeight = FontWeight.Medium, color = C.Ink) }
+}
 
 @Composable
 private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {

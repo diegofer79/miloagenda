@@ -53,8 +53,18 @@ val ALL_WIDGETS = listOf(
     "rain" to "Aviso de lluvia",
 )
 
-/** Interruptor de Home Assistant mostrado en la pantalla "Casa". */
-data class HomeSwitch(val name: String, val entityId: String, val icon: String)
+/**
+ * Interruptor de Home Assistant mostrado en la pantalla "Casa".
+ * [hours] = horas que queda encendido al prenderlo (0 = para siempre), tope [maxHours].
+ * [maxHours] se define en Ajustes (1..5).
+ */
+data class HomeSwitch(
+    val name: String,
+    val entityId: String,
+    val icon: String,
+    val maxHours: Int = 3,
+    val hours: Int = 1,
+)
 
 val DEFAULT_SWITCHES = listOf(
     HomeSwitch("Palmera", "", "palm"),
@@ -76,6 +86,7 @@ data class Prefs(
     val haUrl: String = "",                  // p. ej. http://192.168.1.50:8123
     val haToken: String = "",                // token de acceso de larga duración
     val switches: List<HomeSwitch> = DEFAULT_SWITCHES,
+    val haAutoOff: Map<String, Long> = emptyMap(), // entity_id -> epoch ms en que debe apagarse
 )
 
 object Store {
@@ -163,9 +174,27 @@ object Store {
             put("haUrl", p.haUrl)
             put("haToken", p.haToken)
             put("switches", JSONArray().apply {
-                p.switches.forEach { s -> put(JSONObject().put("name", s.name).put("entity", s.entityId).put("icon", s.icon)) }
+                p.switches.forEach { s ->
+                    put(JSONObject().put("name", s.name).put("entity", s.entityId).put("icon", s.icon)
+                        .put("maxHours", s.maxHours).put("hours", s.hours))
+                }
             })
+            put("haAutoOff", JSONObject().apply { p.haAutoOff.forEach { (k, v) -> put(k, v) } })
         }.toString())
+    }
+
+    // ---------- auto-apagado de interruptores (Home Assistant) ----------
+    /** Programa el apagado de [entity] en [atMillis] (persiste + alarma exacta). */
+    fun setAutoOff(ctx: Context, entity: String, atMillis: Long) {
+        updatePrefs(prefs.copy(haAutoOff = prefs.haAutoOff + (entity to atMillis)))
+        Alarms.scheduleSwitchOff(ctx, entity, atMillis)
+    }
+
+    /** Cancela el apagado programado de [entity]. */
+    fun clearAutoOff(ctx: Context, entity: String) {
+        if (entity !in prefs.haAutoOff) { Alarms.cancelSwitchOff(ctx, entity); return }
+        updatePrefs(prefs.copy(haAutoOff = prefs.haAutoOff - entity))
+        Alarms.cancelSwitchOff(ctx, entity)
     }
 
     // ---------- persistencia (JSON local, sin nube) ----------
@@ -228,9 +257,14 @@ object Store {
                 switches = o.optJSONArray("switches")?.let { arr ->
                     (0 until arr.length()).map { i ->
                         val s = arr.getJSONObject(i)
-                        HomeSwitch(s.optString("name"), s.optString("entity"), s.optString("icon", "power"))
+                        val maxH = s.optInt("maxHours", 3).coerceIn(1, 5)
+                        HomeSwitch(s.optString("name"), s.optString("entity"), s.optString("icon", "power"),
+                            maxHours = maxH, hours = s.optInt("hours", 1).coerceIn(0, maxH))
                     }
                 } ?: DEFAULT_SWITCHES,
+                haAutoOff = o.optJSONObject("haAutoOff")?.let { obj ->
+                    obj.keys().asSequence().associateWith { obj.getLong(it) }
+                } ?: emptyMap(),
             )
         } }
 
