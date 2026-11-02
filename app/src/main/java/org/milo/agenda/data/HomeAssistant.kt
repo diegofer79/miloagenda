@@ -73,6 +73,27 @@ object HomeAssistant {
     }
 
     /**
+     * Relee el estado de los interruptores de forma bloqueante, para el servidor web local (que ya
+     * corre fuera del hilo principal). Solo escribe [states]; no toca [loading] ni [error] para no
+     * pisar la UI de "Casa" en la tablet si ambas refrescan a la vez.
+     */
+    fun refreshSync() {
+        if (!configured()) return
+        Store.prefs.switches.map { it.entityId }.filter { it.isNotBlank() }.distinct().forEach { id ->
+            try {
+                // Pocos reintentos: es un refresco en segundo plano del servidor web; si HA está caído
+                // no vale la pena colgar segundos (la tablet ya reintenta por su cuenta en "Casa").
+                val r = request("/api/states/$id", "GET", attempts = 2)
+                when (r.code) {
+                    200 -> states[id] = parseState(r.body)
+                    404 -> states[id] = SwState.UNAVAILABLE
+                }
+            } catch (_: Exception) {
+            }
+        }
+    }
+
+    /**
      * Toque en la tarjeta: si está encendido lo apaga; si no, lo enciende y programa el auto-apagado
      * según las horas configuradas del interruptor (0 = para siempre).
      */
@@ -137,11 +158,11 @@ object HomeAssistant {
      * Petición con reintentos: la WiFi de la tablet puede perder paquetes y hacer que el primer
      * intento dé timeout aunque el servidor esté bien. Reintenta hasta 3 veces antes de rendirse.
      */
-    private fun request(path: String, method: String, body: String? = null): Resp {
+    private fun request(path: String, method: String, body: String? = null, attempts: Int = 6): Resp {
         var last: Exception? = null
         // Timeout de conexión corto y varios reintentos: si el WiFi de la tablet parpadea,
         // así cada intento "cae rápido" y se vuelve a probar, aumentando la chance de pegar una ventana buena.
-        repeat(6) { attempt ->
+        repeat(attempts) { attempt ->
             val conn = URL(base() + path).openConnection() as HttpURLConnection
             try {
                 conn.requestMethod = method
@@ -161,7 +182,7 @@ object HomeAssistant {
                 return Resp(code, text)
             } catch (e: Exception) {
                 last = e
-                android.util.Log.w("Milo-HA", "$method $path intento ${attempt + 1}/6: ${e.javaClass.simpleName} ${e.message}")
+                android.util.Log.w("Milo-HA", "$method $path intento ${attempt + 1}/$attempts: ${e.javaClass.simpleName} ${e.message}")
             } finally {
                 conn.disconnect()
             }

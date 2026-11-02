@@ -9,6 +9,8 @@ import android.os.Bundle
 import android.view.WindowManager
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import kotlinx.coroutines.runBlocking
+import org.milo.agenda.data.HomeAssistant
 import org.milo.agenda.data.LocalServer
 import org.milo.agenda.data.Photos
 import org.milo.agenda.data.Store
@@ -34,7 +36,15 @@ class MainActivity : ComponentActivity() {
         Store.init(this)
         org.milo.agenda.data.Alarms.rescheduleSwitchOffs(this) // reactiva apagados pendientes (o apaga los vencidos)
         WeatherRepo.init(this)
-        LocalServer.start { Store.addToCompras(it) } // añadir a Compras desde el teléfono (WiFi)
+        // Servidor web local: pestaña "Compras" (añadir ítems) y "Luces" (controlar interruptores HA).
+        // El icono (home-automation.png) se sirve como favicon del navegador / "añadir a pantalla de inicio".
+        val icon = runCatching { assets.open("home-automation.png").use { it.readBytes() } }.getOrNull()
+        LocalServer.start(
+            onAdd = { Store.addToCompras(it) },
+            // El callback corre en el hilo del servidor; runBlocking reutiliza press() (incluye auto-apagado).
+            onToggle = { entityId -> runBlocking { HomeAssistant.press(applicationContext, entityId) } },
+            iconBytes = icon,
+        )
         requestStartupPermissions()
         setContent { MiloTheme { App() } }
     }
